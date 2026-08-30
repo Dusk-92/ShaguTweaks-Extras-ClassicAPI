@@ -12,7 +12,7 @@ Focused on **stability, compatibility and performance** while keeping the origin
 - **[ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI) — required**
 - **[SuperWoW](https://github.com/balakethelock/SuperWoW) — optional / recommended**
 
-ClassicAPI is the main API layer. ShaguTweaks-ClassicAPI provides the shared `ShaguTweaks.API` bridge used by Extras. SuperWoW is only used as an additional fallback for some cast/GUID information.
+ClassicAPI is the main API layer. ShaguTweaks-ClassicAPI provides the shared `ShaguTweaks.API` bridge used by Extras. SuperWoW is optional and may be used by ShaguTweaks-ClassicAPI for additional cast/GUID information.
 
 ## 📦 Installation
 
