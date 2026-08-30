@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local hooksecurefunc = ShaguTweaks.hooksecurefunc
 local hooksecurefunc = hooksecurefunc or ShaguTweaks.hooksecurefunc
 
 local module = ShaguTweaks:register({
@@ -197,7 +198,7 @@ module.enable = function(self)
 
   local function ShaguTweaksWorldMapFrame_Update()
     -- create metatable if not yet created
-    this.overlayData = this.overlayData or setmetatable(ShaguTweaks.MapOverlayData, {__index = function(t,k)
+    WorldMapFrame.overlayData = WorldMapFrame.overlayData or setmetatable(ShaguTweaks.MapOverlayData, {__index = function(t,k)
       local v = {}
       rawset(t,k,v)
       return v
@@ -213,7 +214,7 @@ module.enable = function(self)
     local alreadyknown = {}
     for i=1, numOverlays do
       local textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY = GetMapOverlayInfo(i)
-      local overlayHash = create_hash(textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
+      local overlayHash = create_hash(prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
       alreadyknown[textureName] = overlayHash
     end
 
@@ -222,7 +223,7 @@ module.enable = function(self)
       frame:Hide()
     end
 
-    local zoneData = this.overlayData[mapFileName]
+    local zoneData = WorldMapFrame.overlayData[mapFileName]
     local textureCount = 0
     local texturePixelWidth, textureFileWidth, texturePixelHeight, textureFileHeight
     for i, hash in ipairs(zoneData) do
@@ -317,18 +318,16 @@ module.enable = function(self)
     end
   end
 
-  -- hook map reveal functions before and after the actual call
-  local ShaguTweaksHookWorldMapFrame_Update = _G.WorldMapFrame_Update
-  _G.WorldMapFrame_Update = function(self)
-    -- hide all previously set textures
+  -- Preserve the native updater: clear custom overlays before it runs, then
+  -- append the reveal layer afterwards.
+  hooksecurefunc("WorldMapFrame_Update", function()
     for i = 1, NUM_WORLDMAP_OVERLAYS do
-      _G[string.format("%s%s","WorldMapOverlay",i)]:Hide()
+      local texture = _G[string.format("%s%s","WorldMapOverlay",i)]
+      if texture then texture:Hide() end
     end
+  end, true)
 
-    -- let the game put its explored tiles on the map
-    ShaguTweaksHookWorldMapFrame_Update(self)
-
-    -- let the addon extend it with its own data
+  hooksecurefunc("WorldMapFrame_Update", function()
     ShaguTweaksWorldMapFrame_Update()
-  end
+  end)
 end

@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Show Micro Menu"],
@@ -27,6 +28,7 @@ module.enable = function(self)
   microframe:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -8, 8)
   microframe:SetWidth(225)
   microframe:SetHeight(44)
+  microframe:SetScale(module.config["panelmicro.scale"])
 
   microframe:SetFrameStrata("MEDIUM")
   microframe:SetBackdrop({
@@ -49,7 +51,9 @@ module.enable = function(self)
   microframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
   microframe:SetScript("OnDragStart", function()
-    if not IsShiftKeyDown() or not IsControlKeyDown() then return end
+    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    if not shift or not control then return end
     this:StartMoving()
   end)
 
@@ -58,7 +62,13 @@ module.enable = function(self)
   end)
 
   microframe:SetScript("OnUpdate", function()
-    if MouseIsOver(this) and IsShiftKeyDown() and IsControlKeyDown() then
+    this.modifierTimer = (this.modifierTimer or 0) + arg1
+    if this.modifierTimer < .05 then return end
+    this.modifierTimer = 0
+
+    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    if MouseIsOver(this) and shift and control then
       if not this.mousedisabled then
         -- disable mouse events on all frames
         this.mousedisabled = true
@@ -78,13 +88,17 @@ module.enable = function(self)
   end)
 
   microframe:SetScript("OnEvent", function()
+    if this.initialized then return end
+    this.initialized = true
+
     ShaguTweaks.DarkenFrame(microframe)
 
     for id, frame in pairs(frames) do
       local anchor = frames[id-1] or microframe
+      frame:ClearAllPoints()
       frame:SetPoint("LEFT", anchor, id == 1 and "LEFT" or "RIGHT", id == 1 and 3.5 or -2, id==1 and 10 or 0)
       frame:SetParent(microframe)
-      frame.Show = frame:Show()
+      frame.Show = nil
       frame:Show()
     end
   end)

@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Show Bags"],
@@ -49,7 +50,9 @@ module.enable = function(self)
   bagframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
   bagframe:SetScript("OnDragStart", function()
-    if not IsShiftKeyDown() or not IsControlKeyDown() then return end
+    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    if not shift or not control then return end
     this:StartMoving()
   end)
 
@@ -58,7 +61,13 @@ module.enable = function(self)
   end)
 
   bagframe:SetScript("OnUpdate", function()
-    if MouseIsOver(this) and IsShiftKeyDown() and IsControlKeyDown() then
+    this.modifierTimer = (this.modifierTimer or 0) + arg1
+    if this.modifierTimer < .05 then return end
+    this.modifierTimer = 0
+
+    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    if MouseIsOver(this) and shift and control then
       if not this.mousedisabled then
         -- disable mouse events on all frames
         this.mousedisabled = true
@@ -78,14 +87,18 @@ module.enable = function(self)
   end)
 
   bagframe:SetScript("OnEvent", function()
+    if this.initialized then return end
+    this.initialized = true
+
     ShaguTweaks.DarkenFrame(bagframe)
 
     for id, frame in pairs(frames) do
       local anchor = frames[id-1] or bagframe
+      frame:ClearAllPoints()
       frame:SetPoint("LEFT", anchor, id == 1 and "LEFT" or "RIGHT", id == 1 and 5 or 2, 0)
       frame:SetParent(bagframe)
       frame:SetScale(.8)
-      frame.Show = frame:Show()
+      frame.Show = nil
       frame:Show()
     end
   end)
