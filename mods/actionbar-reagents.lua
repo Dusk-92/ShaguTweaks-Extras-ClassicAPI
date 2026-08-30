@@ -45,6 +45,9 @@ module.enable = function(self)
 
     -- Tooltip scans are only required when the action layout changed.
     if this.rescan then
+      -- Rebuild the active reagent set so items no longer referenced by any
+      -- action slot stop being counted after actionbar changes.
+      reagent_counts = {}
       for slot = 1, 120 do
         reagentcounter.ScanSlot(slot)
       end
@@ -56,7 +59,7 @@ module.enable = function(self)
     end
 
     -- update all actionbar buttons
-    for _, prefix in pairs(bars) do
+    for _, prefix in ipairs(bars) do
       for i = 1, NUM_ACTIONBAR_BUTTONS do
         local button = _G[prefix .. "Button" .. i]
         if button then
@@ -92,10 +95,14 @@ module.enable = function(self)
       -- remove reagent counts if existing
       reagents = reagents and string.gsub(reagents, " %((.+)%)", "")
 
-      -- update on reagent requirement changes
-      if reagents and reagent_slots[slot] ~= reagents then
+      if reagents then
         reagent_counts[reagents] = reagent_counts[reagents] or 0
         reagent_slots[slot] = reagents
+      else
+        -- The slot can stay occupied while changing from a reagent spell to a
+        -- normal action; clear the previous reagent instead of leaving a stale
+        -- counter on the button.
+        reagent_slots[slot] = nil
       end
     end
   end

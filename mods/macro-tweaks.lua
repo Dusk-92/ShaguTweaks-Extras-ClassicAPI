@@ -137,9 +137,7 @@ module.enable = function(self)
     end
   end)
 
-  _G.SLASH_EQUIP1 = "/equip"
-  _G.SLASH_EQUIP2 = "/use"
-  _G.SlashCmdList.EQUIP = function(msg)
+  local function EquipOrUse(msg)
     if not msg or msg == "" then return end
 
     local bag, slot
@@ -164,4 +162,9 @@ module.enable = function(self)
       UseInventoryItem(slot)
     end
   end
+
+  -- Keep the original Macro Tweaks conveniences, but do not steal /equip or
+  -- /use from another addon that already registered either command.
+  RegisterSlashAlias("SHAGUTWEAKS_EQUIP", "/equip", EquipOrUse)
+  RegisterSlashAlias("SHAGUTWEAKS_USE", "/use", EquipOrUse)
 end

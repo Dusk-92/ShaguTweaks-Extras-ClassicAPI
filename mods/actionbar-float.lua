@@ -29,7 +29,7 @@ module.enable = function(self)
   MainMenuBar:SetPoint("BOTTOM", 0, 8)
 
   -- align actionbutton textures and add border
-  for _, prefix in pairs(actionbars) do
+  for _, prefix in ipairs(actionbars) do
     for i = 1, NUM_ACTIONBAR_BUTTONS do
       local button = _G[prefix .. "Button" .. i]
       local texture = _G[prefix.."Button"..i.."NormalTexture"]
@@ -60,6 +60,7 @@ module.enable = function(self)
 
   -- keep the custom reputation position without replacing Blizzard's updater
   local function UpdateReputationPosition()
+    ReputationWatchBar:ClearAllPoints()
     if MainMenuExpBar:IsShown() then
       ReputationWatchBar:SetPoint("BOTTOM", MainMenuBar, "TOP", 0, -7)
     else
@@ -74,7 +75,7 @@ module.enable = function(self)
   MainMenuBarMaxLevelBar:SetAlpha(0)
 
   -- remove textures
-  for _, texture in pairs(texture_removals) do
+  for _, texture in ipairs(texture_removals) do
     if texture then
       texture:SetTexture()
       texture:Hide()
