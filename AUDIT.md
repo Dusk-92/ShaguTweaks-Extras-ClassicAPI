@@ -670,3 +670,82 @@ Static audit is complete. Before merging to the stable branch, test:
 Do not merge this audit branch solely on static analysis. Treat the branch as a
 test candidate until the in-game matrix has passed without Lua errors or UI
 regressions.
+
+
+## TokensWorth requested modules — test branch audit
+
+Branch: `tokensworth-mods-classicapi-test`
+
+Seven requested modules were added for runtime testing. **Improved Roll Frames was
+not duplicated** because an optimized version already exists in
+ShaguTweaks-ClassicAPI.
+
+### Mouseover Right / Mouseover Right 2
+
+The original implementation created one independent mouse-catching overlay for
+every action button plus the bar itself. The test version uses one invisible
+reveal area per bar and one 100 ms controller that only runs while the bar is
+visible. When hidden, there is no polling.
+
+The helper preserves existing bar OnShow/OnHide scripts and tracks the native
+`SHOW_MULTI_ACTIONBAR_3` / `SHOW_MULTI_ACTIONBAR_4` state through
+`CVAR_UPDATE`.
+
+### Hide Macro Text
+
+One-time UI update only. No ClassicAPI replacement is useful for this FrameXML
+operation and no periodic work is installed.
+
+### Unit Frame Abbreviated Names
+
+The original target-of-target implementation recalculated the name on every
+rendered frame. The test version uses ClassicAPI event validation and
+`UNIT_TARGET` when available. Only environments without that event use a
+250 ms fallback ticker.
+
+### Movable Unit Frames Extended
+
+The permanent per-frame Ctrl+Shift check was removed. The module uses
+`ShaguTweaks.API.IsShiftKeyDown`, `API.IsControlKeyDown` and
+`MODIFIER_STATE_CHANGED` when ClassicAPI exposes modifier-state events.
+
+The grid is created lazily on the first unlock. Positions are stored in the
+existing `ShaguTweaks_config["MoveUnitframesExtended"]` table.
+
+For the requested Turtle layout, the debuff anchor is **BuffButton32** instead
+of the upstream BuffButton16.
+
+### Cursor Tooltip
+
+The original global `GameTooltip_SetDefaultAnchor` replacement was removed.
+The test version keeps the native function intact through the ShaguTweaks safe
+post-hook helper. Cursor tracking runs only while a default-anchored tooltip is
+shown.
+
+### Hide Combat Tooltip
+
+The original combat-long per-frame Shift polling was removed. ClassicAPI's
+modifier event updates the tooltip only when modifier state actually changes.
+A 50 ms combat-only fallback exists for environments without that event.
+
+The GameTooltip Show method is post-hooked so tooltips opened after entering
+combat immediately inherit the correct hidden/Shift-visible state.
+
+### Runtime validation required
+
+Before merging this branch, test:
+
+- login and `/reload` with the seven new modules disabled
+- each module individually enabled
+- both Mouseover Right modules together
+- toggle the two right actionbars in Interface Options while mouseover modules are enabled
+- stance/bonus actionbar changes with Hide Macro Text enabled
+- long NPC target names and target-of-target changes
+- Ctrl+Shift dragging of party frames, minimap, BuffButton0, BuffButton32 and TempEnchant1
+- relog/reload persistence of moved positions
+- Cursor Tooltip alone, Hide Combat Tooltip alone, and both enabled together
+- combat tooltip Shift reveal/re-hide behavior
+- interaction with DragonflightUI-Reforged's injected ShaguTweaks Extras list
+- Lua errors and visible FPS regressions
+
+Static code review is complete; this branch remains a runtime test candidate.
