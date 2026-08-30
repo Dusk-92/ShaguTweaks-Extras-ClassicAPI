@@ -139,7 +139,7 @@ module.enable = function(self)
   macroicons:RegisterEvent("UPDATE_MACROS")
   macroicons:SetScript("OnEvent", function()
     local macroCache = BuildMacroCache()
-    for _, bar in pairs(bars) do
+    for _, bar in ipairs(bars) do
       ButtonMacroScan(bar, macroCache)
     end
   end)
