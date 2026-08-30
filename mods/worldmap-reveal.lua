@@ -149,17 +149,6 @@ module.enable = function(self)
   local errata = {
   }
 
-  local function create_hash(prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
-    local hash = string.format(":%s:%s:%s:%s",textureWidth,textureHeight,offsetX,offsetY)
-    if (mapPointX ~= 0 or mapPointY ~= 0) then
-      hash = string.format("%s:%s:%s",hash,tostring(mapPointX),tostring(mapPointY))
-    end
-    if string.sub(textureName, 0, string.len(prefix)) == prefix then
-      return string.format("%s%s",string.sub(textureName, string.len(prefix) + 1),hash)
-    end
-    return string.format("|%s",hash)
-  end
-
   local function unpack_hash(prefix, hash)
     local _, stored_prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY, name
     _, _, stored_prefix, textureName, textureWidth, textureHeight, offsetX, offsetY = string.find(hash, "^([|]?)([^:]+):([^:]+):([^:]+):([^:]+):([^:]+)")
@@ -181,7 +170,6 @@ module.enable = function(self)
   end
 
   local explores = {}
-  local explorecaches = {}
 
   local exploreEnter = function()
     WorldMapTooltip:ClearLines()
@@ -211,10 +199,11 @@ module.enable = function(self)
     local numOverlays = GetNumMapOverlays()
 
     local alreadyknown = {}
-    for i=1, numOverlays do
-      local textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY = GetMapOverlayInfo(i)
-      local overlayHash = create_hash(prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
-      alreadyknown[textureName] = overlayHash
+    for i = 1, numOverlays do
+      local textureName = GetMapOverlayInfo(i)
+      if textureName then
+        alreadyknown[textureName] = true
+      end
     end
 
     -- hide all exploration points
@@ -232,15 +221,17 @@ module.enable = function(self)
       local explore = explores[i]
       explore:SetWidth(16)
       explore:SetHeight(16)
+      explore:ClearAllPoints()
       explore:SetPoint("TOPLEFT", "WorldMapDetailFrame", "TOPLEFT", offsetX+textureWidth/2, -offsetY-textureHeight/2)
       explore:SetScript("OnEnter", exploreEnter)
       explore:SetScript("OnLeave", exploreLeave)
       explore:EnableMouse(true)
       explore:SetFrameLevel(255)
-      explore.name = mapFileName .. " (" .. name .. ")"
-      explore.tex = explore.tex or explore:CreateTexture("", "OVERLAY")
+      explore.name = mapFileName .. " (" .. (name or "?") .. ")"
+      explore.tex = explore.tex or explore:CreateTexture(nil, "OVERLAY")
       explore.tex:SetBlendMode("ADD")
       explore.tex:SetTexCoord(.08, .92, .08, .92)
+      explore.tex:ClearAllPoints()
       explore.tex:SetAllPoints()
 
       -- show exploration points
@@ -300,9 +291,6 @@ module.enable = function(self)
             texture:ClearAllPoints()
             texture:SetPoint("TOPLEFT", "WorldMapDetailFrame", "TOPLEFT", offsetX + (256 *(k - 1)), -(offsetY +(256 *(j - 1))))
             texture:SetTexture(string.format("%s%s",textureName,(((j - 1) * numTexturesHorz) + k)))
-
-            explorecaches[name] = explorecaches[name] or {}
-            explorecaches[name][texture] = true
 
             if not alreadyknown[textureName] then
               texture:SetVertexColor(.4,.4,.4,1)
