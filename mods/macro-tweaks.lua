@@ -73,49 +73,59 @@ module.enable = function(self)
 
   -- ClassicAPI exposes several modern macro primitives as Lua functions but
   -- Vanilla does not register their familiar slash-command equivalents.
-  -- Add only the small set that maps cleanly to modern macro syntax, and leave
-  -- any command already registered by another addon untouched.
+  --
+  -- Use ShaguTweaks-specific command IDs instead of generic STARTATTACK/FOCUS
+  -- keys. A SlashCmdList key can exist without the corresponding /command
+  -- alias, so testing only SlashCmdList.STARTATTACK can silently skip a valid
+  -- registration and leave Vanilla reporting "Type '/help'...".
   local function TrimUnit(msg)
     if not msg then return nil end
     local _, _, unit = string.find(msg, "^%s*(.-)%s*$")
     return unit ~= "" and unit or nil
   end
 
-  if not _G.SlashCmdList.STARTATTACK then
-    _G.SLASH_STARTATTACK1 = "/startattack"
-    _G.SlashCmdList.STARTATTACK = function(msg)
-      if type(_G.StartAttack) == "function" then
-        _G.StartAttack(TrimUnit(msg))
+  local function IsSlashRegistered(command)
+    command = string.lower(command)
+    for key, value in pairs(_G) do
+      if type(key) == "string"
+        and string.find(key, "^SLASH_")
+        and type(value) == "string"
+        and string.lower(value) == command then
+        return true
       end
     end
+    return false
   end
 
-  if not _G.SlashCmdList.STOPATTACK then
-    _G.SLASH_STOPATTACK1 = "/stopattack"
-    _G.SlashCmdList.STOPATTACK = function()
-      if type(_G.StopAttack) == "function" then
-        _G.StopAttack()
-      end
-    end
+  local function RegisterSlashAlias(id, command, handler)
+    if IsSlashRegistered(command) then return end
+    _G["SLASH_" .. id .. "1"] = command
+    _G.SlashCmdList[id] = handler
   end
 
-  if not _G.SlashCmdList.FOCUS then
-    _G.SLASH_FOCUS1 = "/focus"
-    _G.SlashCmdList.FOCUS = function(msg)
-      if type(_G.FocusUnit) == "function" then
-        _G.FocusUnit(TrimUnit(msg))
-      end
+  RegisterSlashAlias("SHAGUTWEAKS_STARTATTACK", "/startattack", function(msg)
+    if type(_G.StartAttack) == "function" then
+      _G.StartAttack(TrimUnit(msg))
     end
-  end
+  end)
 
-  if not _G.SlashCmdList.CLEARFOCUS then
-    _G.SLASH_CLEARFOCUS1 = "/clearfocus"
-    _G.SlashCmdList.CLEARFOCUS = function()
-      if type(_G.ClearFocus) == "function" then
-        _G.ClearFocus()
-      end
+  RegisterSlashAlias("SHAGUTWEAKS_STOPATTACK", "/stopattack", function()
+    if type(_G.StopAttack) == "function" then
+      _G.StopAttack()
     end
-  end
+  end)
+
+  RegisterSlashAlias("SHAGUTWEAKS_FOCUS", "/focus", function(msg)
+    if type(_G.FocusUnit) == "function" then
+      _G.FocusUnit(TrimUnit(msg))
+    end
+  end)
+
+  RegisterSlashAlias("SHAGUTWEAKS_CLEARFOCUS", "/clearfocus", function()
+    if type(_G.ClearFocus) == "function" then
+      _G.ClearFocus()
+    end
+  end)
 
   _G.SLASH_EQUIP1 = "/equip"
   _G.SLASH_EQUIP2 = "/use"

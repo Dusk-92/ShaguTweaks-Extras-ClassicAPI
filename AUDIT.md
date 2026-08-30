@@ -171,9 +171,11 @@ ClassicAPI:
 - `/focus [unit]` → `FocusUnit(unit)` (defaults to current target)
 - `/clearfocus` → `ClearFocus()`
 
-Each alias is only registered when another addon has not already claimed the
-same command. This keeps Macro Tweaks a compatibility/convenience layer rather
-than duplicating ClassicAPI itself.
+Each alias is only registered when no existing global `SLASH_*` alias already
+claims the same command. ShaguTweaks-specific command IDs are used internally,
+avoiding collisions with generic `SlashCmdList.STARTATTACK` / `FOCUS` keys.
+This also fixes a Vanilla failure mode where a handler key could exist without
+the actual slash alias, leaving macros to print the stock `/help` hint.
 
 No `/castnotoggle` alias is added: ClassicAPI already recognizes
 `CastSpellNoToggle("Spell")` directly inside macro bodies and tags the action
