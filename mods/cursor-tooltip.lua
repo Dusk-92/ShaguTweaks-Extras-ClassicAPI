@@ -41,16 +41,16 @@ module.enable = function(self)
   tracker:SetScript("OnUpdate", UpdatePosition)
 
   -- GameTooltip_SetDefaultAnchor is normally called before GameTooltip:Show().
-  -- The first test version started the tracker immediately, saw a hidden
-  -- tooltip and stopped again. Mark it here and start tracking on Show instead.
+  -- Mark the tooltip here, then begin tracking once it is actually shown.
   hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
     if tooltip ~= GameTooltip then return end
 
     tracker.tooltip = tooltip
     tracker.follow = true
 
+    -- Do NOT call SetOwner here. SetOwner can reset tooltip visual state
+    -- (including alpha) and was fighting Hide Combat Tooltip.
     tooltip:SetClampedToScreen(true)
-    tooltip:SetOwner(parent or UIParent, "ANCHOR_NONE")
 
     if tooltip:IsShown() then
       tracker:Show()
