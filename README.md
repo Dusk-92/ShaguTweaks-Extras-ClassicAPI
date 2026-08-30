@@ -40,7 +40,8 @@ Settings: **Esc → Advanced Options**.
 - Reveal World Map now uses live ClassicAPI map overlay data instead of bundled static map tables.
 - Better Turtle WoW-like server compatibility for items, auras and UI behavior.
 - Added Auction Alt-Buy and Buy Em All as optional merchant and auction conveniences.
-- Added modifier-aware Key-Down Casting with an independent Alt Self-Cast option.
+- Buy Em All uses ClassicAPI merchant, item count and bag-family data, including specialty bags.
+- Added modifier-aware Key-Down Casting with Shift/Ctrl/Alt binding support and an independent Alt Self-Cast option.
 - Added Metric Range for metre labels in range tooltips without changing numeric values.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
