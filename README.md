@@ -43,6 +43,8 @@ Settings: **Esc → Advanced Options**.
 - Buy Em All uses ClassicAPI merchant, item count and bag-family data, including specialty bags.
 - Added modifier-aware Key-Down Casting with Shift/Ctrl/Alt binding support and an independent Alt Self-Cast option.
 - Added Metric Range for metre labels in range tooltips without changing numeric values.
+- Added optimized modules adapted from TokensWorth/ShaguTweaks-mods: Mouseover Right bars, Hide Macro Text, Unit Frame Abbreviated Names, Movable Unit Frames Extended, Cursor Tooltip and Hide Combat Tooltip.
+- Movable Unit Frames Extended and Hide Combat Tooltip use ClassicAPI modifier-state events instead of permanent per-frame modifier polling.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
 ## 🔷 Mods using ClassicAPI integration
@@ -55,12 +57,15 @@ Settings: **Esc → Advanced Options**.
 - Alt Self-Cast
 - Macro Icons
 - Macro Tweaks
+- Movable Unit Frames Extended
 - Raid Frames
 - Reagent Counter
 - Reveal World Map
 - Show Dispel Indicators
 - Show Bags
 - Show Micro Menu
+- Hide Combat Tooltip
+- Unit Frame Abbreviated Names
 
 Other modules can also benefit indirectly from ClassicAPI through shared ShaguTweaks libraries and helpers.
 
@@ -76,6 +81,9 @@ Other modules can also benefit indirectly from ClassicAPI through shared ShaguTw
 - Show Micro Menu
 - Key-Down Casting
 - Alt Self-Cast
+- Mouseover Right
+- Mouseover Right 2
+- Hide Macro Text
 
 ### Bags & Inventory
 
@@ -90,6 +98,13 @@ Other modules can also benefit indirectly from ClassicAPI through shared ShaguTw
 ### Tooltip & Items
 
 - Metric Range
+- Cursor Tooltip
+- Hide Combat Tooltip
+
+### Unit Frames
+
+- Unit Frame Abbreviated Names
+- Movable Unit Frames Extended
 
 ### World Map
 
@@ -127,10 +142,11 @@ Macro Tweaks adds convenient ClassicAPI-backed aliases:
 
 ## 🧹 Removed duplicates
 
-The following original Extras modules are not included because improved versions already exist in ShaguTweaks-ClassicAPI:
+The following modules are not included because improved versions already exist in ShaguTweaks-ClassicAPI:
 
 - **Chat History** → integrated into **Chat Tweaks**
 - **Show Energy Ticks** → integrated as **Energy & Mana Tick**
+- **Improved Roll Frames** → already integrated and optimized in **ShaguTweaks-ClassicAPI**
 
 ## 🔧 Compatibility
 
@@ -146,5 +162,7 @@ Original addon and modules by **Shagu**.
 Additional maintenance and Turtle WoW work by **paokkerkir**.
 
 ClassicAPI compatibility fork maintained by **Dusk-92**.
+
+Additional requested modules adapted from **TokensWorth/ShaguTweaks-mods**, originally released under MIT by **GryllsAddons**. See `THIRD_PARTY_NOTICES.md`.
 
 Released under the original **MIT License**.
