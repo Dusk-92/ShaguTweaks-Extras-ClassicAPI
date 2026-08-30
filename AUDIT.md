@@ -163,6 +163,12 @@ macro slots again for every button.
 
 #### Macro Tweaks — fixed / ClassicAPI-aware
 
+Registers modern-style `/startattack` and `/stopattack` slash commands on
+Vanilla and routes them to ClassicAPI's non-toggling `StartAttack()` and
+`StopAttack()` functions. This avoids Vanilla treating `/startattack` as an
+unknown slash command and, unlike `AttackTarget()`, repeated use cannot toggle
+an active auto-attack off.
+
 Container item lookup now prefers ClassicAPI item IDs/names.
 
 Numeric `/use` and `/equip` parsing is anchored so arbitrary item names that

@@ -4,7 +4,7 @@ local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Macro Tweaks"],
-  description = T["Add /equip command to macros, remove #showtooltip from chat and hide macro commands from history."],
+  description = T["Add /equip, /use, /startattack and /stopattack to macros, remove #showtooltip from chat and hide macro commands from history."],
   expansions = { ["vanilla"] = true, ["tbc"] = false },
   maintainer = "@shagu (GitHub)",
   category = T["Macro"],
@@ -30,6 +30,8 @@ module.enable = function(self)
         if string.find(text, "^/run%s*") then return end
         if string.find(text, "^/script%s*") then return end
         if string.find(text, "^/cast%s*") then return end
+        if string.find(text, "^/startattack%s*") then return end
+        if string.find(text, "^/stopattack%s*") then return end
       end
       ChatFrameEditBox._AddHistoryLine(self, text)
     end
@@ -64,6 +66,29 @@ module.enable = function(self)
           return bag, slot
         end
       end
+    end
+  end
+
+  -- ClassicAPI exposes the modern non-toggling StartAttack/StopAttack verbs.
+  -- Register the corresponding slash commands so Vanilla's macro parser can
+  -- use the familiar modern syntax without falling through to "unknown command".
+  _G.SLASH_STARTATTACK1 = "/startattack"
+  _G.SlashCmdList.STARTATTACK = function(msg)
+    if type(_G.StartAttack) ~= "function" then return end
+
+    local unit
+    if msg then
+      _, _, unit = string.find(msg, "^%s*(.-)%s*$")
+      if unit == "" then unit = nil end
+    end
+
+    _G.StartAttack(unit)
+  end
+
+  _G.SLASH_STOPATTACK1 = "/stopattack"
+  _G.SlashCmdList.STOPATTACK = function()
+    if type(_G.StopAttack) == "function" then
+      _G.StopAttack()
     end
   end
 
