@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Show Micro Menu"],
@@ -59,8 +59,8 @@ module.enable = function(self)
   microframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
   microframe:SetScript("OnDragStart", function()
-    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
-    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    local shift = API.IsShiftKeyDown()
+    local control = API.IsControlKeyDown()
     if not shift or not control then return end
     this:StartMoving()
   end)
@@ -74,8 +74,8 @@ module.enable = function(self)
     if this.modifierTimer < .05 then return end
     this.modifierTimer = 0
 
-    local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
-    local control = API.IsControlKeyDown and API.IsControlKeyDown() or IsControlKeyDown()
+    local shift = API.IsShiftKeyDown()
+    local control = API.IsControlKeyDown()
     if MouseIsOver(this) and shift and control then
       if not this.mousedisabled then
         -- disable mouse events on all frames

@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 local libspell = ShaguTweaks.libspell
 
 local module = ShaguTweaks:register({
@@ -27,12 +27,10 @@ module.enable = function(self)
   end
 
   local function GetMacroData(actionSlot, cache)
-    if API.GetActionInfo then
-      local actionType, id = API.GetActionInfo(actionSlot)
-      if actionType == "macro" and id then
-        local _, _, body = GetMacroInfo(id)
-        if body then return id, body end
-      end
+    local actionType, id = API.GetActionInfo(actionSlot)
+    if actionType == "macro" and id then
+      local _, _, body = GetMacroInfo(id)
+      if body then return id, body end
     end
 
     local macroName = GetActionText(actionSlot)
@@ -83,8 +81,8 @@ module.enable = function(self)
     -- ClassicAPI already resolves and caches the macro's primary spell.
     -- This is the correct modern behavior for a bare "#showtooltip" line and
     -- also covers /castsequence, CastSpellByName and CastSpellNoToggle.
-    if macroSlot and type(_G.GetMacroSpell) == "function" then
-      local spell, rank = _G.GetMacroSpell(macroSlot)
+    if macroSlot then
+      local spell, rank = API.GetMacroSpell(macroSlot)
       if spell then
         return spell, rank ~= "" and rank or nil
       end

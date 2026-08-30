@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Enable Raid Frames"],
@@ -72,19 +72,10 @@ end
 local UnitInRange = function(unitstr)
   if not unitstr then return false end
 
-  -- Prefer positional range data whenever the client exposes UnitPosition
-  -- (SuperWoW or another compatibility layer), then fall back to Vanilla.
-  if type(UnitPosition) == "function" then
-    local x1, y1, z1 = UnitPosition("player")
-    local x2, y2, z2 = UnitPosition(unitstr)
-
-    if x1 and y1 and z1 and x2 and y2 and z2 then
-      local distance = ((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)^.5
-      if distance < 40 then return true end
-    end
-  end
-
-  return CheckInteractDistance(unitstr, 4) and true or false
+  -- ClassicAPI provides a reach-aware 40-yard range check. Any compatibility
+  -- fallback is centralized in ShaguTweaks.API rather than duplicated here.
+  local inRange, checked = API.UnitInRange(unitstr)
+  return checked and inRange or false
 end
 
 -- Unit Frames
@@ -610,7 +601,7 @@ module.enable = function(self)
     end
 
     raid.toggle:SetScript("OnMouseDown", function()
-      local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+      local shift = API.IsShiftKeyDown()
       if shift then
         this.dragging = true
         this:SetScript("OnUpdate", UpdateToggleDrag)

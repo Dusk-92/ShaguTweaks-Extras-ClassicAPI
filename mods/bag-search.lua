@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Bag Search Bar"],
@@ -52,13 +52,13 @@ module.enable = function(self)
   end
 
   local function GetContainerItemName(bag, slot)
-    if API.GetContainerItemID and API.GetItemNameByID then
-      local itemID = API.GetContainerItemID(bag, slot)
-      local name = itemID and API.GetItemNameByID(itemID)
-      if name then return name end
-    end
+    local itemID = API.GetContainerItemID(bag, slot)
+    local name = itemID and API.GetItemNameByID(itemID)
+    if name then return name end
 
-    local link = GetContainerItemLink(bag, slot)
+    -- The bridge uses C_Container.GetContainerItemInfo().hyperlink first and
+    -- falls back to Vanilla only when ClassicAPI cannot provide the link.
+    local link = API.GetContainerItemLink(bag, slot)
     if not link then return "" end
 
     local startPos = string.find(link, "%[")

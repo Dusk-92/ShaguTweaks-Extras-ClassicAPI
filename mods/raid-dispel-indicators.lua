@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Show Dispel Indicators"],
@@ -71,15 +71,7 @@ module.enable = function(self)
       for dtype in pairs(debuffs) do frame.affected[dtype] = nil end
 
       for i = 1, 16 do
-        local dtype
-        if API.aurapositional and API.UnitDebuff then
-          local _, _, _, debuffType = API.UnitDebuff(frame.unitstr, i)
-          dtype = debuffType
-        else
-          local _, _, debuffType = UnitDebuff(frame.unitstr, i)
-          dtype = debuffType
-        end
-
+        local dtype = API.GetDebuffType(frame.unitstr, i)
         if dtype then frame.affected[dtype] = true end
       end
 

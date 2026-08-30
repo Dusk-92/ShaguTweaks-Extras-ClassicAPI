@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Macro Tweaks"],
@@ -57,16 +57,14 @@ module.enable = function(self)
   end
 
   local function GetBagItemName(bag, slot)
-    if API.GetContainerItemID and API.GetItemNameByID then
-      local itemID = API.GetContainerItemID(bag, slot)
-      local name = itemID and API.GetItemNameByID(itemID)
-      if name then return name end
-    end
+    local itemID = API.GetContainerItemID(bag, slot)
+    local name = itemID and API.GetItemNameByID(itemID)
+    if name then return name end
 
-    local itemLink = GetContainerItemLink(bag, slot)
-    if not itemLink then return end
-    local _, _, itemID = string.find(itemLink, "item:(%d+)")
-    return itemID and GetItemInfo(itemID) or nil
+    local itemLink = API.GetContainerItemLink(bag, slot)
+    local linkedID = itemLink and API.GetItemIDFromLink(itemLink)
+    local itemName = linkedID and API.GetItemInfo(linkedID)
+    return itemName
   end
 
   local function FindItem(item)
@@ -114,27 +112,19 @@ module.enable = function(self)
   end
 
   RegisterSlashAlias("SHAGUTWEAKS_STARTATTACK", "/startattack", function(msg)
-    if type(_G.StartAttack) == "function" then
-      _G.StartAttack(TrimUnit(msg))
-    end
+    API.StartAttack(TrimUnit(msg))
   end)
 
   RegisterSlashAlias("SHAGUTWEAKS_STOPATTACK", "/stopattack", function()
-    if type(_G.StopAttack) == "function" then
-      _G.StopAttack()
-    end
+    API.StopAttack()
   end)
 
   RegisterSlashAlias("SHAGUTWEAKS_FOCUS", "/focus", function(msg)
-    if type(_G.FocusUnit) == "function" then
-      _G.FocusUnit(TrimUnit(msg))
-    end
+    API.FocusUnit(TrimUnit(msg))
   end)
 
   RegisterSlashAlias("SHAGUTWEAKS_CLEARFOCUS", "/clearfocus", function()
-    if type(_G.ClearFocus) == "function" then
-      _G.ClearFocus()
-    end
+    API.ClearFocus()
   end)
 
   local function EquipOrUse(msg)

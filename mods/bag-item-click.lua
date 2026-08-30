@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API or {}
+local API = ShaguTweaks.API
 local hooksecurefunc = ShaguTweaks.hooksecurefunc
 
 local module = ShaguTweaks:register({
@@ -26,8 +26,7 @@ module.enable = function(self)
   end
 
   local function ShiftDown()
-    if API.IsShiftKeyDown then return API.IsShiftKeyDown() end
-    return IsShiftKeyDown()
+    return API.IsShiftKeyDown()
   end
 
   -- Interception is intentional here: the feature must be able to suppress the
@@ -44,7 +43,7 @@ module.enable = function(self)
       end
     elseif IsAuctionBrowsing() and not ShiftDown() then
       -- search item in auction house
-      local link = GetContainerItemLink(bag, slot)
+      local link = API.GetContainerItemLink(bag, slot)
       local name = link and string.sub(link, string.find(link, "%[")+1, string.find(link, "%]")-1) or ""
       BrowseName:SetText(name)
       AuctionFrameBrowse_Search()
