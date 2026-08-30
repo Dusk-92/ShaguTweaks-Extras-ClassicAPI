@@ -1,5 +1,6 @@
 -- Adapted from TokensWorth/ShaguTweaks-mods (MIT, original copyright GryllsAddons).
 
+local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
 local hooksecurefunc = ShaguTweaks.hooksecurefunc
 
@@ -12,61 +13,40 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
-  local tracker = CreateFrame("Frame", nil, UIParent)
-  tracker.tooltip = nil
-  tracker.follow = false
-  tracker:Hide()
+  -- This feature intentionally replaces the default-anchor helper. A post-hook
+  -- is not enough on Vanilla/Turtle because the native helper marks the
+  -- tooltip as default and later layout code can restore the bottom-right
+  -- position. Replacing only this helper keeps non-default tooltip anchors
+  -- untouched.
+  if not ShaguTweaks.CursorTooltipOriginalDefaultAnchor then
+    ShaguTweaks.CursorTooltipOriginalDefaultAnchor = _G.GameTooltip_SetDefaultAnchor
+  end
 
-  local function UpdatePosition()
-    local tooltip = tracker.tooltip
-    if not tracker.follow or not tooltip or not tooltip:IsShown() then
-      tracker:Hide()
-      return
-    end
+  local cursor = CreateFrame("Frame", nil, UIParent)
+  cursor:SetWidth(20)
+  cursor:SetHeight(20)
+  cursor:Hide()
 
-    -- Hide Combat Tooltip may intentionally make the tooltip transparent.
-    -- Keep the tracker alive so Shift can reveal it immediately without
-    -- rebuilding the anchor.
-    if tooltip:GetAlpha() == 0 then return end
-
+  cursor:SetScript("OnUpdate", function()
     local scale = UIParent:GetEffectiveScale()
     if not scale or scale == 0 then scale = UIParent:GetScale() end
     if not scale or scale == 0 then scale = 1 end
 
     local x, y = GetCursorPosition()
+    this:ClearAllPoints()
+    this:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+  end)
+
+  function _G.GameTooltip_SetDefaultAnchor(tooltip, parent)
+    tooltip:SetOwner(parent, "ANCHOR_NONE")
     tooltip:ClearAllPoints()
-    tooltip:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x / scale + 16, y / scale + 18)
+    tooltip:SetPoint("BOTTOMLEFT", cursor, "TOPRIGHT", 12, 12)
+    tooltip.default = 1
+
+    cursor:Show()
   end
 
-  tracker:SetScript("OnUpdate", UpdatePosition)
-
-  -- GameTooltip_SetDefaultAnchor is normally called before GameTooltip:Show().
-  -- Mark the tooltip here, then begin tracking once it is actually shown.
-  hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
-    if tooltip ~= GameTooltip then return end
-
-    tracker.tooltip = tooltip
-    tracker.follow = true
-
-    -- Do NOT call SetOwner here. SetOwner can reset tooltip visual state
-    -- (including alpha) and was fighting Hide Combat Tooltip.
-    tooltip:SetClampedToScreen(true)
-
-    if tooltip:IsShown() then
-      tracker:Show()
-      UpdatePosition()
-    end
-  end)
-
-  hooksecurefunc(GameTooltip, "Show", function()
-    if not tracker.follow or tracker.tooltip ~= GameTooltip then return end
-    tracker:Show()
-    UpdatePosition()
-  end)
-
   hooksecurefunc(GameTooltip, "Hide", function()
-    tracker:Hide()
-    tracker.tooltip = nil
-    tracker.follow = false
+    cursor:Hide()
   end)
 end
