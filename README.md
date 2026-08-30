@@ -29,13 +29,15 @@ Settings: **Esc → Advanced Options**.
 
 ## ✨ Main changes
 
-- ClassicAPI-first integration through the shared `ShaguTweaks.API` layer.
+- ClassicAPI-backed integration through the shared `ShaguTweaks.API` layer.
 - Removed modules already integrated into ShaguTweaks-ClassicAPI.
 - Improved macro support with modern ClassicAPI-backed commands.
 - Better macro icon and `#showtooltip` handling.
 - Safer hooks and fewer destructive global overrides.
 - Reduced unnecessary per-frame work and repeated UI scans.
 - Improved raid-frame initialization and shared periodic updates.
+- Reagent Counter now uses ClassicAPI spell reagent and item count data instead of tooltip scanning.
+- Reveal World Map now uses live ClassicAPI map overlay data instead of bundled static map tables.
 - Better Turtle WoW-like server compatibility for items, auras and UI behavior.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
