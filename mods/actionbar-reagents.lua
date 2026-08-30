@@ -1,7 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local libtipscan = ShaguTweaks.libtipscan
-local GetItemCount = ShaguTweaks.GetItemCount
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Reagent Counter"],
@@ -15,15 +14,14 @@ local module = ShaguTweaks:register({
 module.enable = function(self)
   local reagent_slots = { }
   local reagent_counts = { }
-  local reagent_capture = SPELL_REAGENTS.."(.+)"
   local bars = { "Action", "BonusAction", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarLeft", "MultiBarRight" }
-  local scanner = libtipscan:GetScanner("reagents")
 
   local reagentcounter = CreateFrame("Frame", "ShaguTweaksReagentCount", UIParent)
   reagentcounter:RegisterEvent("PLAYER_ENTERING_WORLD")
   reagentcounter:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
   reagentcounter:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
   reagentcounter:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+  reagentcounter:RegisterEvent("UPDATE_MACROS")
   reagentcounter:RegisterEvent("BAG_UPDATE")
 
   -- Hidden frames still receive events, but do not execute OnUpdate.
@@ -43,19 +41,20 @@ module.enable = function(self)
       return
     end
 
-    -- Tooltip scans are only required when the action layout changed.
+    -- Rebuild the action-slot -> reagent mapping only when the action layout
+    -- changes. ClassicAPI resolves the spell/macro directly, so no tooltip
+    -- scan or localized reagent-name parsing is required.
     if this.rescan then
-      -- Rebuild the active reagent set so items no longer referenced by any
-      -- action slot stop being counted after actionbar changes.
       reagent_counts = {}
       for slot = 1, 120 do
         reagentcounter.ScanSlot(slot)
       end
     end
 
-    -- Bag changes only need fresh counts for reagents already discovered.
-    for item in pairs(reagent_counts) do
-      reagent_counts[item] = GetItemCount(item)
+    -- Count only reagents referenced by active actions. ClassicAPI reads the
+    -- inventory directly, avoiding a Lua bag scan for every reagent.
+    for itemID in pairs(reagent_counts) do
+      reagent_counts[itemID] = API.GetItemCount(itemID, false, false) or 0
     end
 
     -- update all actionbar buttons
@@ -67,8 +66,9 @@ module.enable = function(self)
           local slot = ActionButton_GetPagedID(button)
 
           if text then
-            if reagent_slots[slot] then
-              text:SetText(reagent_counts[reagent_slots[slot]])
+            local itemID = reagent_slots[slot]
+            if itemID then
+              text:SetText(reagent_counts[itemID] or 0)
             elseif not IsConsumableAction(slot) then
               text:SetText()
             end
@@ -83,27 +83,28 @@ module.enable = function(self)
   end)
 
   reagentcounter.ScanSlot = function(slot)
-    -- update buttons that previously had an reagent
-    if reagent_slots[slot] and not HasAction(slot) then
-      reagent_slots[slot] = nil
+    reagent_slots[slot] = nil
+    if not HasAction(slot) then return end
+
+    local actionType, actionID = API.GetActionInfo(slot)
+    local spellID
+
+    if actionType == "spell" then
+      spellID = actionID
+    elseif actionType == "macro" and actionID then
+      local _, _, macroSpellID = API.GetMacroSpell(actionID)
+      spellID = macroSpellID
     end
 
-    -- search for reagent requirements
-    if HasAction(slot) then
-      scanner:SetAction(slot)
-      local _, reagents = scanner:Find(reagent_capture)
-      -- remove reagent counts if existing
-      reagents = reagents and string.gsub(reagents, " %((.+)%)", "")
+    if not spellID then return end
 
-      if reagents then
-        reagent_counts[reagents] = reagent_counts[reagents] or 0
-        reagent_slots[slot] = reagents
-      else
-        -- The slot can stay occupied while changing from a reagent spell to a
-        -- normal action; clear the previous reagent instead of leaving a stale
-        -- counter on the button.
-        reagent_slots[slot] = nil
-      end
-    end
+    local reagents = API.GetSpellReagents(spellID)
+    local reagent = reagents and reagents[1]
+    if not reagent or not reagent.itemID then return end
+
+    -- The action button only has one count field. Preserve the historical
+    -- behavior by showing the first reagent's owned stack count.
+    reagent_slots[slot] = reagent.itemID
+    reagent_counts[reagent.itemID] = reagent_counts[reagent.itemID] or 0
   end
 end
