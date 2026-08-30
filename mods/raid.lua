@@ -87,20 +87,9 @@ local UnitFrame_OnUpdate = function()
     return
   end
 
-  -- Only components that explicitly need frame-by-frame animation run here.
+  -- Only true frame-by-frame animations run on individual unit frames.
   for component in pairs(this.onupdate) do
     component.update(this)
-  end
-
-  -- Shared 250 ms pseudo-event using the elapsed frame time instead of GetTime.
-  if this.events['FRAME_TICK_250'] then
-    this.tick250 = (this.tick250 or 0) - (arg1 or 0)
-    if this.tick250 <= 0 then
-      this.tick250 = .250
-      for _, component in pairs(this.events['FRAME_TICK_250']) do
-        component.update(this, 'FRAME_TICK_250')
-      end
-    end
   end
 end
 
@@ -174,7 +163,6 @@ local CreateUnitFrame = function(parent, i)
   frame:SetScript("OnClick", UnitFrame_OnClick)
   frame:SetScript("OnEnter", UnitFrame_OnEnter)
   frame:SetScript("OnLeave", UnitFrame_OnLeave)
-  frame:SetScript("OnUpdate", UnitFrame_OnUpdate)
   frame:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
 
   -- base events
@@ -202,6 +190,12 @@ local CreateUnitFrame = function(parent, i)
     if object.onupdate then
       frame.onupdate[object] = true
     end
+  end
+
+  if next(frame.onupdate) then
+    frame:SetScript("OnUpdate", UnitFrame_OnUpdate)
+  else
+    frame:SetScript("OnUpdate", nil)
   end
 
   -- save frame to parent
@@ -607,5 +601,27 @@ module.enable = function(self)
 
     -- assign default config
     raid.cluster.config = module.config
+  end
+
+  do -- shared 250ms component ticker
+    raid.ticker = CreateFrame("Frame", nil, raid)
+    raid.ticker:SetScript("OnUpdate", function()
+      this.elapsed = (this.elapsed or 0) + (arg1 or 0)
+      if this.elapsed < .250 then return end
+      this.elapsed = this.elapsed - .250
+
+      if not raid.cluster.frames then return end
+
+      for _, frame in pairs(raid.cluster.frames) do
+        if frame:IsVisible() and frame.unitstr and UnitName(frame.unitstr) then
+          local tickers = frame.events['FRAME_TICK_250']
+          if tickers then
+            for _, component in pairs(tickers) do
+              component.update(frame, 'FRAME_TICK_250')
+            end
+          end
+        end
+      end
+    end)
   end
 end
