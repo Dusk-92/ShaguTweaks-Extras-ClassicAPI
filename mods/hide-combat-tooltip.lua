@@ -16,13 +16,9 @@ module.enable = function(self)
   ShaguTweaks.HideCombatTooltipInstalled = true
 
   local originalShow = GameTooltip.Show
-  local originalHide = GameTooltip.Hide
   local combat = UnitAffectingCombat("player") and true or false
-  local suppressed = false
 
   local function InCombat()
-    -- Keep the event state, but also check the live unit state because Turtle
-    -- builds/addons can differ slightly in when combat events are delivered.
     return combat or (UnitAffectingCombat("player") and true or false)
   end
 
@@ -30,52 +26,34 @@ module.enable = function(self)
     return API.IsShiftKeyDown()
   end
 
-  -- Intentional interception: unlike alpha-based hiding, blocking Show()
-  -- prevents even a single rendered-frame flash and cannot be undone by
-  -- tooltip anchoring/fade code.
+  local function Apply()
+    if InCombat() and not ShiftDown() then
+      if GameTooltip:GetAlpha() ~= 0 then
+        GameTooltip:SetAlpha(0)
+      end
+    else
+      if GameTooltip:GetAlpha() ~= 1 then
+        GameTooltip:SetAlpha(1)
+      end
+    end
+  end
+
+  -- Keep the tooltip logically shown while suppressing it visually.
+  -- This preserves its current owner/content, so pressing Shift while the
+  -- mouse is already over a target reveals the existing tooltip immediately.
+  --
+  -- Alpha is forced before and after the native Show call so there is no
+  -- rendered-frame flash even if Show internally resets alpha.
   GameTooltip.Show = function(self)
     if InCombat() and not ShiftDown() then
-      suppressed = true
-      if self:IsShown() then
-        originalHide(self)
-      end
-      return
+      self:SetAlpha(0)
+      local result = originalShow(self)
+      self:SetAlpha(0)
+      return result
     end
 
-    suppressed = false
+    self:SetAlpha(1)
     return originalShow(self)
-  end
-
-  -- A real Hide means the mouse left the tooltip owner, so a later Shift press
-  -- must not resurrect stale tooltip content.
-  GameTooltip.Hide = function(self)
-    suppressed = false
-    return originalHide(self)
-  end
-
-  local function HideForCombat()
-    if GameTooltip:IsShown() then
-      suppressed = true
-      -- Call the preserved method directly so our Hide wrapper does not clear
-      -- the suppressed state while the mouse is still over the same owner.
-      originalHide(GameTooltip)
-    end
-  end
-
-  local function Refresh()
-    if InCombat() then
-      if ShiftDown() then
-        if suppressed then
-          suppressed = false
-          originalShow(GameTooltip)
-        end
-      else
-        HideForCombat()
-      end
-    elseif suppressed then
-      suppressed = false
-      originalShow(GameTooltip)
-    end
   end
 
   local events = CreateFrame("Frame")
@@ -93,29 +71,36 @@ module.enable = function(self)
     if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_ENTER_COMBAT" then
       combat = true
     elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_LEAVE_COMBAT" then
-      -- UnitAffectingCombat is checked again by InCombat(), so an early leave
-      -- event cannot expose the tooltip while the player is still engaged.
       combat = false
     elseif event == "PLAYER_ENTERING_WORLD" then
       combat = UnitAffectingCombat("player") and true or false
     end
 
-    Refresh()
+    Apply()
   end)
 
-  -- ClassicAPI gives us modifier events. Only old/fallback environments need
-  -- a small combat-only modifier check so Shift reveal still works.
+  -- Some tooltip code paths can change alpha after Show. Reassert only while
+  -- the tooltip itself is visible; there is no separate permanent polling
+  -- frame in ClassicAPI environments.
+  local oldOnUpdate = GameTooltip:GetScript("OnUpdate")
+  GameTooltip:SetScript("OnUpdate", function()
+    if oldOnUpdate then oldOnUpdate() end
+    Apply()
+  end)
+
+  -- Legacy fallback: ClassicAPI normally gives MODIFIER_STATE_CHANGED, but
+  -- older environments still need a light modifier refresh while in combat.
   if not API.modifierstate then
     events.elapsed = 0
     events:SetScript("OnUpdate", function()
-      if not InCombat() then return end
+      if not InCombat() or not GameTooltip:IsShown() then return end
 
       this.elapsed = this.elapsed + (arg1 or 0)
       if this.elapsed < .05 then return end
       this.elapsed = 0
-      Refresh()
+      Apply()
     end)
   end
 
-  Refresh()
+  Apply()
 end
