@@ -18,6 +18,32 @@ local module = ShaguTweaks:register({
 })
 
 local components = {}
+local raidReadyCallbacks = {}
+local raidReadyFrame
+
+-- Raid submodules are enabled from an unordered ShaguTweaks.mods table.
+-- Queue work that needs the actual raid frame so submodules never depend on
+-- which module happens to be visited first by pairs().
+ShaguTweaks.RaidFrame_OnReady = function(callback)
+  if type(callback) ~= "function" then return end
+
+  if raidReadyFrame then
+    callback(raidReadyFrame)
+  else
+    table.insert(raidReadyCallbacks, callback)
+  end
+end
+
+local function NotifyRaidFrameReady(raid)
+  raidReadyFrame = raid
+
+  local callbacks = raidReadyCallbacks
+  raidReadyCallbacks = {}
+
+  for i = 1, table.getn(callbacks) do
+    callbacks[i](raid)
+  end
+end
 
 local backdrop = {
   border = {
@@ -134,7 +160,7 @@ local UnitFrame_OnEvent = function()
   if not this.events[event] then return end
 
   -- run update functions for each frame
-  for id, component in pairs(this.events[event]) do
+  for _, component in ipairs(this.events[event]) do
     component.update(this, event)
   end
 end
@@ -170,12 +196,12 @@ local CreateUnitFrame = function(parent, i)
   frame:RegisterEvent("PARTY_MEMBERS_CHANGED")
   frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
-  for id, object in pairs(components) do
+  for _, object in ipairs(components) do
     -- create component frames
     object.create(frame)
 
     -- register component update events
-    for _, event in pairs(object.events) do
+    for _, event in ipairs(object.events) do
       frame:RegisterEvent(event)
       frame.events[event] = frame.events[event] or {}
       table.insert(frame.events[event], object)
@@ -225,7 +251,7 @@ UnitFrame_NewComponent('health', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if arg1 and this.unitstr ~= arg1 then return end
+    if arg1 and frame.unitstr ~= arg1 then return end
 
     -- update statusbar values
     frame.bar:SetMinMaxValues(0, UnitHealthMax(frame.unitstr))
@@ -269,7 +295,7 @@ UnitFrame_NewComponent('mana', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if arg1 and this.unitstr ~= arg1 then return end
+    if arg1 and frame.unitstr ~= arg1 then return end
 
     -- update mana bar values
     frame.mana:SetMinMaxValues(0, UnitManaMax(frame.unitstr))
@@ -484,7 +510,7 @@ module.enable = function(self)
       local x, y = 0, 0
       for group = 1, 8 do
         if RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[group] then
-          for id, unit in pairs(RAID_SUBGROUP_LISTS[group]) do
+          for id, unit in ipairs(RAID_SUBGROUP_LISTS[group]) do
             -- assign proper unitstrs to frames
             local index = (group - 1) * 5 + id
             local frame = this.cluster.frames[index]
@@ -612,11 +638,11 @@ module.enable = function(self)
 
       if not raid.cluster.frames then return end
 
-      for _, frame in pairs(raid.cluster.frames) do
+      for _, frame in ipairs(raid.cluster.frames) do
         if frame:IsVisible() and frame.unitstr and UnitName(frame.unitstr) then
           local tickers = frame.events['FRAME_TICK_250']
           if tickers then
-            for _, component in pairs(tickers) do
+            for _, component in ipairs(tickers) do
               component.update(frame, 'FRAME_TICK_250')
             end
           end
@@ -624,4 +650,6 @@ module.enable = function(self)
       end
     end)
   end
+
+  NotifyRaidFrameReady(raid)
 end

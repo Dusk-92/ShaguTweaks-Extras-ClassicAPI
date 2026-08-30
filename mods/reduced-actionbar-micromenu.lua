@@ -15,8 +15,16 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
-  -- only run if reduced actionbar is enabled
-  if ShaguTweaks_config[T["Reduced Actionbar Size"]] == 0 then return end
+  -- The ShaguTweaks loader initializes module config while iterating an
+  -- unordered table. On a fresh install the Reduced Actionbar key may not have
+  -- been visited yet, so fall back to that module's declared default.
+  local reducedTitle = T["Reduced Actionbar Size"]
+  local reducedEnabled = ShaguTweaks_config and ShaguTweaks_config[reducedTitle]
+  if reducedEnabled == nil then
+    local reducedModule = ShaguTweaks.mods and ShaguTweaks.mods[reducedTitle]
+    reducedEnabled = reducedModule and reducedModule.enabled and 1 or 0
+  end
+  if reducedEnabled ~= 1 then return end
 
   local frames = {
     CharacterMicroButton, SpellbookMicroButton, TalentMicroButton,
@@ -72,7 +80,7 @@ module.enable = function(self)
       if not this.mousedisabled then
         -- disable mouse events on all frames
         this.mousedisabled = true
-        for _, frame in pairs(frames) do
+        for _, frame in ipairs(frames) do
           frame:EnableMouse(0)
         end
       end
@@ -80,7 +88,7 @@ module.enable = function(self)
       if this.mousedisabled then
         -- enable all mouse events again
         this.mousedisabled = false
-        for _, frame in pairs(frames) do
+        for _, frame in ipairs(frames) do
           frame:EnableMouse(1)
         end
       end
@@ -93,7 +101,7 @@ module.enable = function(self)
 
     ShaguTweaks.DarkenFrame(microframe)
 
-    for id, frame in pairs(frames) do
+    for id, frame in ipairs(frames) do
       local anchor = frames[id-1] or microframe
       frame:ClearAllPoints()
       frame:SetPoint("LEFT", anchor, id == 1 and "LEFT" or "RIGHT", id == 1 and 3.5 or -2, id==1 and 10 or 0)

@@ -62,7 +62,7 @@ module.enable = function(self)
     update = function(frame, event)
       -- ignore empty or unrelated events
       if not event then return end
-      if arg1 and this.unitstr ~= arg1 then return end
+      if arg1 and frame.unitstr ~= arg1 then return end
 
       -- affected debuffs
       frame.affected = frame.affected or {}
