@@ -8,6 +8,105 @@ This document records the static audit performed on the fork. Runtime behavior
 still requires in-game validation because the WoW 1.12 UI runtime cannot be
 executed in GitHub.
 
+## ClassicAPI-first conversion audit — 2026-08-30
+
+The retained Extras modules were audited again against the current ClassicAPI
+API surface. The goal of this pass is the same architecture as
+ShaguTweaks-ClassicAPI itself:
+
+```
+Extras module
+    ↓
+ShaguTweaks.API
+    ↓
+ClassicAPI first
+    ↓
+central Vanilla fallback only when required
+```
+
+The conversion is paired with the ShaguTweaks-ClassicAPI branch
+`extras-classicapi-bridge`, which adds normalized wrappers for macro spell
+resolution, combat/focus verbs, debuff types, reach-aware unit range and
+container item link/count data.
+
+### Direct ClassicAPI-first modules
+
+- **Bag Item Click** — modifier state and container hyperlink via the bridge.
+- **Bag Search Bar** — container item ID/name/link via the bridge.
+- **Macro Icons** — `GetActionInfo` and `GetMacroSpell` via the bridge.
+- **Macro Tweaks** — container/item lookup plus `StartAttack`, `StopAttack`,
+  `FocusUnit` and `ClearFocus` via the bridge.
+- **Enable Raid Frames** — reach-aware `UnitInRange` and modifier state via
+  the bridge.
+- **Show Dispel Indicators** — normalized `GetDebuffType` via the bridge.
+- **Show Bags** — Shift/Control state via the bridge.
+- **Show Micro Menu** — Shift/Control state via the bridge.
+
+### Indirect ClassicAPI-first module
+
+- **Reagent Counter** uses the shared `ShaguTweaks.GetItemCount` helper. That
+  helper now obtains stack counts, item IDs and item names through
+  `ShaguTweaks.API`, so the module receives ClassicAPI container/item data
+  without duplicating API logic locally.
+
+### Modules intentionally remaining on native APIs
+
+The other retained modules were checked individually. Their relevant operations
+are FrameXML/UI functions or Vanilla game functions for which ClassicAPI does
+not expose a replacement required by this addon:
+
+- Dragonflight Gryphons
+- Floating Actionbar
+- Center Vertical Actionbar
+- Center Text Input Box
+- Enable Text Shadow
+- Chat Timestamps
+- Show Aggro Indicators
+- Show Combat Feedback
+- Use Compact Layout
+- Show Group Headers
+- Show Healing Predictions
+- Hide Party Frames
+- Use As Party Frames
+- Reveal World Map
+
+Examples include `CreateFrame`, anchoring/layout methods, chat-frame
+`AddMessage`, `UseContainerItem`, `GetContainerNumSlots`,
+`UnitHealth` / `UnitMana`, and WorldMap FrameXML functions. Replacing these
+with invented wrappers would add abstraction without adding ClassicAPI value.
+
+ClassicAPI does not currently expose an authoritative threat API, so
+**Show Aggro Indicators** keeps its cached target/target-of-target heuristic.
+
+### Central bridge additions
+
+The paired ShaguTweaks-ClassicAPI branch adds:
+
+- `API.GetMacroSpell`
+- `API.StartAttack`
+- `API.StopAttack`
+- `API.FocusUnit`
+- `API.ClearFocus`
+- `API.GetDebuffType`
+- `API.UnitInRange`
+- `API.GetContainerItemLink`
+- `API.GetContainerItemStackCount`
+
+`API.UnitInRange` prefers ClassicAPI's reach-aware 40-yard implementation.
+It explicitly handles the player's own frame and keeps the old interaction
+check only as a centralized compatibility fallback.
+
+`API.GetDebuffType` normalizes the different return layouts of
+ClassicAPI's positional aura API and Vanilla 1.12 `UnitDebuff`, so Extras no
+longer needs to branch on those signatures itself.
+
+### Conversion result
+
+No retained Extras module now performs its own ClassicAPI-versus-Vanilla
+selection for the converted API families. That policy lives in
+`ShaguTweaks.API`, matching the architecture of the main
+ShaguTweaks-ClassicAPI fork.
+
 ## Second full counter-audit — 2026-08-30
 
 A second audit was performed from the current branch state without assuming the
@@ -287,9 +386,11 @@ Added a guard for the XP-bar background region.
 
 #### Reagent Counter — optimized
 
-The tooltip scan is unavoidable because Vanilla exposes no direct action-button
-reagent API. Previously an `OnUpdate` ran permanently and all 120 action slots
-were rescanned after every bag event.
+The tooltip scan is unavoidable because ClassicAPI does not expose the reagent
+requirements needed for this action-button feature. Item counting itself is now
+ClassicAPI-first indirectly through the shared `ShaguTweaks.GetItemCount`
+helper. Previously an `OnUpdate` ran permanently and all 120 action slots were
+rescanned after every bag event.
 
 Now the frame sleeps while idle. Action-layout events request a one-frame
 tooltip rescan; `BAG_UPDATE` only refreshes counts for reagents already known.
@@ -301,7 +402,7 @@ Simple one-time frame positioning. No ClassicAPI benefit and no hot-path work.
 
 #### Show Bags — fixed / optimized
 
-Uses ClassicAPI-aware modifier helpers. Modifier polling is throttled to 50 ms.
+Uses the shared ClassicAPI-first modifier helpers directly. Modifier polling is throttled to 50 ms.
 Initialization is guarded against repeated `PLAYER_ENTERING_WORLD` work.
 Child anchors are cleared before reparenting.
 
@@ -317,7 +418,7 @@ previously defined but never applied; it is now used.
 
 #### Bag Item Click — hardened
 
-ClassicAPI-aware Shift state is used where available.
+Shift state and auction-browser container links now go through the shared ClassicAPI-first bridge.
 
 The old replacement of `GameTooltip.SetBagItem` was removed and replaced by a
 safe post-hook.
@@ -332,9 +433,11 @@ normal path.
 Fixed a possible nil dereference where the icon texture was read before the bag
 button had been validated.
 
-Item IDs/names now prefer `ShaguTweaks.API.GetContainerItemID` and
-`GetItemNameByID`, with the original hyperlink parser retained as fallback.
-This improves compatibility with ClassicAPI item caches and custom Turtle items.
+Item IDs/names now use `ShaguTweaks.API.GetContainerItemID` and
+`GetItemNameByID` directly. Hyperlink fallback also goes through
+`API.GetContainerItemLink`, which prefers ClassicAPI container data and keeps
+the Vanilla fallback centralized. This improves compatibility with ClassicAPI
+item caches and custom Turtle items.
 
 #### Reveal World Map — critical fix / hardened
 
@@ -374,8 +477,7 @@ message before it reaches the underlying Chat Tweaks history/output pipeline.
 
 #### Macro Icons — fixed / optimized / ClassicAPI-aware
 
-Uses `ShaguTweaks.API.GetActionInfo` when available to resolve macro action
-IDs.
+Uses `ShaguTweaks.API.GetActionInfo` directly to resolve macro action IDs.
 
 Fixed an action-slot bug: the old code fetched the fallback texture using the
 local button index instead of the real paged action slot. This was wrong on
@@ -411,7 +513,8 @@ No `/castnotoggle` alias is added: ClassicAPI already recognizes
 `CastSpellNoToggle("Spell")` directly inside macro bodies and tags the action
 slot correctly, so an extra slash command would be redundant.
 
-Container item lookup now prefers ClassicAPI item IDs/names.
+Container item lookup, macro combat/focus verbs and item metadata now go
+through the shared ClassicAPI-first bridge.
 
 Numeric `/use` and `/equip` parsing is anchored so arbitrary item names that
 contain digits are not accidentally interpreted as inventory slots.
@@ -441,13 +544,13 @@ shared `OnUpdate`.
 Additional fixes:
 
 - range helper now uses its `unitstr` argument instead of implicit `this`
-- positional range works whenever `UnitPosition` exists, with Vanilla
-  `CheckInteractDistance` fallback
+- range checks use `API.UnitInRange`, preferring ClassicAPI's reach-aware
+  40-yard implementation with fallback centralized in the bridge
 - undefined health-bar alpha replaced with explicit `1`
 - unknown mana power types have a safe fallback color
 - compact layout is handled directly by the base text component
 - raid-toggle drag `OnUpdate` exists only while actually dragging
-- ClassicAPI-aware Shift detection is used for dragging
+- ClassicAPI-first Shift detection is used for dragging
 
 #### Use As Party Frames — hardened
 
@@ -465,8 +568,9 @@ frame reference used by the UNIT_COMBAT filter.
 
 #### Show Dispel Indicators — ClassicAPI-aware
 
-Uses ClassicAPI's positional `UnitDebuff` path when available and falls back to
-the Vanilla 1.12 three-value layout otherwise.
+Uses the normalized `API.GetDebuffType` bridge. ClassicAPI's positional aura
+API is preferred and the different Vanilla 1.12 return layout is handled only
+inside the central bridge.
 
 #### Show Aggro Indicators — fixed
 

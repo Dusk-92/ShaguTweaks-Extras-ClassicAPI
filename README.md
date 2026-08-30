@@ -12,7 +12,7 @@ Focused on **stability, compatibility and performance** while keeping the origin
 - **[ClassicAPI](https://github.com/brues-code/ClassicAPI) — required through ShaguTweaks-ClassicAPI**
 - **[SuperWoW](https://github.com/balakethelock/SuperWoW) — optional / recommended**
 
-ClassicAPI is used through the shared `ShaguTweaks.API` compatibility layer where it provides a real benefit. Native Vanilla APIs are kept where ClassicAPI is not needed.
+ClassicAPI is the primary API layer. Extras modules call the shared `ShaguTweaks.API` bridge, which prefers ClassicAPI and centralizes any necessary Vanilla fallback. Native Vanilla UI APIs are kept only where ClassicAPI has no equivalent.
 
 ## 📦 Installation
 
@@ -29,7 +29,7 @@ Settings: **Esc → Advanced Options**.
 
 ## ✨ Main changes
 
-- ClassicAPI compatibility through the shared `ShaguTweaks.API` layer.
+- ClassicAPI-first integration through the shared `ShaguTweaks.API` layer.
 - Removed modules already integrated into ShaguTweaks-ClassicAPI.
 - Improved macro support with modern ClassicAPI-backed commands.
 - Better macro icon and `#showtooltip` handling.
@@ -50,7 +50,9 @@ Settings: **Esc → Advanced Options**.
 - Show Bags
 - Show Micro Menu
 
-Other modules remain on native Vanilla APIs where ClassicAPI does not provide a meaningful advantage.
+**Reagent Counter** also benefits indirectly: its shared `ShaguTweaks.GetItemCount` helper now uses ClassicAPI container/item data through the same bridge.
+
+Other modules remain on native Vanilla UI/game APIs only where ClassicAPI does not provide an equivalent. ClassicAPI/Vanilla fallback decisions stay centralized in `ShaguTweaks.API` instead of being duplicated inside Extras modules.
 
 ## ⚙️ Modules
 
@@ -109,7 +111,8 @@ The following original Extras modules are not included because improved versions
 ## 🔧 Compatibility
 
 - ShaguTweaks-ClassicAPI integration
-- ClassicAPI integration
+- ClassicAPI-first API integration
+- Centralized Vanilla compatibility fallbacks
 - Turtle WoW-like server compatibility
 - SuperWoW compatibility
 
