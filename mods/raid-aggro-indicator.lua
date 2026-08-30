@@ -18,7 +18,7 @@ local backdrop = {
 }
 
 -- basic unitstrings
-unitstrings = {
+local unitstrings = {
   ["pet"] = true, ["player"] = true, ["target"] = true, ["mouseover"] = true
 }
 
@@ -31,12 +31,13 @@ for i=1,40 do unitstrings["raidpet" .. i] = true end
 -- cached aggro detection function
 local aggrodata = { }
 local function UnitHasAggro(unit)
-  if aggrodata[unit] and GetTime() < aggrodata[unit].check + 1 then
+  local now = GetTime()
+  if aggrodata[unit] and now < aggrodata[unit].check + 1 then
     return aggrodata[unit].state
   end
 
   aggrodata[unit] = aggrodata[unit] or { }
-  aggrodata[unit].check = GetTime()
+  aggrodata[unit].check = now
   aggrodata[unit].state = 0
 
   if UnitExists(unit) and UnitIsFriend(unit, "player") then

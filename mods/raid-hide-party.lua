@@ -11,41 +11,47 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
-  local show = _G['PartyMemberFrame1'].Show
-  local hide = function() return end
+  local raid = ShaguTweaksRaidFrame
+  if not raid then return end
 
-  local scanner = CreateFrame("Frame", nil, UIParent)
-  scanner:SetScript("OnUpdate", function()
-    if ShaguTweaksRaidFrame and ShaguTweaksRaidFrame:IsShown() then
-      if not this.disable then
-        -- disable all party frames
-        for i = 1, MAX_PARTY_MEMBERS do
-          local frame = _G['PartyMemberFrame' .. i]
-          if frame then
-            frame.Show = hide
-            frame:Hide()
-          end
+  local originals = {}
+  local hidden = false
+
+  for i = 1, MAX_PARTY_MEMBERS do
+    local frame = _G["PartyMemberFrame" .. i]
+    if frame then originals[frame] = frame.Show end
+  end
+
+  local function SetPartyFramesHidden(state)
+    if state == hidden then return end
+    hidden = state
+
+    for i = 1, MAX_PARTY_MEMBERS do
+      local frame = _G["PartyMemberFrame" .. i]
+      if frame then
+        if state then
+          frame.Show = function() return end
+          frame:Hide()
+        else
+          frame.Show = originals[frame]
+          if GetPartyMember(i) then frame:Show() else frame:Hide() end
         end
-
-        this.disable = true
-      end
-    else
-      if this.disable then
-        -- enable all party frames
-        for i = 1, MAX_PARTY_MEMBERS do
-          for i = 1, MAX_PARTY_MEMBERS do
-            local frame = _G['PartyMemberFrame' .. i]
-            if frame then
-              frame.Show = show
-              if GetPartyMember(i) then
-                frame:Show()
-              end
-            end
-          end
-        end
-
-        this.disable = nil
       end
     end
-  end)
+  end
+
+  local function UpdatePartyFrames()
+    SetPartyFramesHidden(raid:IsShown())
+  end
+
+  ShaguTweaks.HookScript(raid, "OnShow", UpdatePartyFrames)
+  ShaguTweaks.HookScript(raid, "OnHide", UpdatePartyFrames)
+
+  local watcher = CreateFrame("Frame", nil, UIParent)
+  watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+  watcher:RegisterEvent("RAID_ROSTER_UPDATE")
+  watcher:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  watcher:SetScript("OnEvent", UpdatePartyFrames)
+
+  UpdatePartyFrames()
 end

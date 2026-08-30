@@ -12,7 +12,9 @@ local module = ShaguTweaks:register({
 
 module.enable = function(self)
   ShaguTweaks.UnitFrame_NewComponent('healing predictions', {
-    events = { },
+    events = {
+      'FRAME_TICK_250',
+    },
 
     create = function(frame)
       -- create green prediction healthbar
@@ -29,18 +31,19 @@ module.enable = function(self)
       local res = ShaguTweaks.libpredict:UnitHasIncomingResurrection(frame.unitstr)
 
       -- update bar size if required
-      if heal ~= this.predict_lastval then
+      if heal ~= frame.predict_lastval then
         if heal and heal > 0 then
           local health, maxHealth = UnitHealth(frame.unitstr), UnitHealthMax(frame.unitstr)
-          local healthWidth = 62 * health / maxHealth
-          local incWidth = 62 * heal / maxHealth
-          local width = math.min(62, healthWidth + incWidth)
-          frame.predict:SetWidth(width)
+          local barWidth = frame.bar:GetWidth()
+          local healthWidth = maxHealth > 0 and barWidth * health / maxHealth or 0
+          local incWidth = maxHealth > 0 and barWidth * heal / maxHealth or 0
+          frame.predict:SetWidth(math.min(barWidth, healthWidth + incWidth))
+          frame.predict:Show()
         else
-          frame.predict:SetWidth(-1)
+          frame.predict:Hide()
         end
 
-        this.predict_lastval = heal
+        frame.predict_lastval = heal
       end
 
       -- update healing state

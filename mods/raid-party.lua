@@ -21,7 +21,7 @@ module.enable = function(self)
 
   raid:SetScript("OnEvent", function()
     -- run default scripts
-    RaidOnEvent()
+    if RaidOnEvent then RaidOnEvent() end
 
     -- break here in normal raid scenario
     if UnitInRaid("player") then return end

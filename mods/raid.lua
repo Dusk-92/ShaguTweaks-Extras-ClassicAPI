@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local rgbhex = ShaguTweaks.rgbhex
+local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Enable Raid Frames"],
@@ -44,22 +44,21 @@ local GetFramePosition = function(i, rows)
 end
 
 local UnitInRange = function(unitstr)
-  if SUPERWOW_VERSION then
-    -- 40y range check
-    local x1, y1, z1 = UnitPosition("player")
-    local x2, y2, z2 = UnitPosition(this.unitstr)
+  if not unitstr then return false end
 
-    -- only continue if we got position values
+  -- Prefer positional range data whenever the client exposes UnitPosition
+  -- (SuperWoW or another compatibility layer), then fall back to Vanilla.
+  if type(UnitPosition) == "function" then
+    local x1, y1, z1 = UnitPosition("player")
+    local x2, y2, z2 = UnitPosition(unitstr)
+
     if x1 and y1 and z1 and x2 and y2 and z2 then
       local distance = ((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)^.5
       if distance < 40 then return true end
     end
-  else
-    -- 28y range check
-    if CheckInteractDistance(this.unitstr, 4) then return true end
   end
 
-  return false
+  return CheckInteractDistance(unitstr, 4) and true or false
 end
 
 -- Unit Frames
@@ -83,26 +82,24 @@ local UnitFrame_OnLeave = function()
 end
 
 local UnitFrame_OnUpdate = function()
-  -- abort on invalid unit frames
   if not this.unitstr or not UnitName(this.unitstr) then
     this:Hide()
     return
   end
 
-  -- run update functions of all components
-  for component in pairs(this.update) do
+  -- Only components that explicitly need frame-by-frame animation run here.
+  for component in pairs(this.onupdate) do
     component.update(this)
   end
 
-  -- run 250ms tick pseudo events
-  this.tick250 = this.tick250 or 0
-  if this.events['FRAME_TICK_250'] and this.tick250 < GetTime() then
-    -- set next tick time
-    this.tick250 = GetTime() + .250
-
-    -- run update functions for each frame
-    for id, component in pairs(this.events['FRAME_TICK_250']) do
-      component.update(this, 'FRAME_TICK_250')
+  -- Shared 250 ms pseudo-event using the elapsed frame time instead of GetTime.
+  if this.events['FRAME_TICK_250'] then
+    this.tick250 = (this.tick250 or 0) - (arg1 or 0)
+    if this.tick250 <= 0 then
+      this.tick250 = .250
+      for _, component in pairs(this.events['FRAME_TICK_250']) do
+        component.update(this, 'FRAME_TICK_250')
+      end
     end
   end
 end
@@ -170,7 +167,7 @@ local CreateUnitFrame = function(parent, i)
     ['PLAYER_ENTERING_WORLD'] = { },
   }
 
-  frame.update = {}
+  frame.onupdate = {}
 
   -- assign required events and scripts
   frame:SetScript("OnEvent", UnitFrame_OnEvent)
@@ -201,8 +198,10 @@ local CreateUnitFrame = function(parent, i)
     table.insert(frame.events['PARTY_MEMBERS_CHANGED'], object)
     table.insert(frame.events['PLAYER_ENTERING_WORLD'], object)
 
-    -- register update function
-    frame.update[object] = true
+    -- only register true frame-by-frame components
+    if object.onupdate then
+      frame.onupdate[object] = true
+    end
   end
 
   -- save frame to parent
@@ -244,7 +243,7 @@ UnitFrame_NewComponent('health', {
     if class and RAID_CLASS_COLORS[class] then
       r, g, b = RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
     end
-    frame.bar:SetStatusBarColor(r, g, b, a)
+    frame.bar:SetStatusBarColor(r, g, b, 1)
   end
 })
 
@@ -283,13 +282,15 @@ UnitFrame_NewComponent('mana', {
     frame.mana:SetValue(UnitMana(frame.unitstr))
 
     -- update mana bar colors
-    local color = ManaBarColor[UnitPowerType(frame.unitstr)]
+    local color = ManaBarColor[UnitPowerType(frame.unitstr)] or { r = .2, g = .2, b = 1 }
     frame.mana:SetStatusBarColor(color.r, color.g, color.b, 1)
   end
 })
 
 UnitFrame_NewComponent('text', {
-  events = { },
+  events = {
+    'FRAME_TICK_250',
+  },
 
   create = function(frame)
     -- create caption text
@@ -303,9 +304,11 @@ UnitFrame_NewComponent('text', {
   update = function(frame, event)
     -- update caption text
     local name = UnitName(frame.unitstr) or ""
-    local info = frame.info and "\n"..frame.info or ""
+    local info = (not frame.compact and frame.info) and "\n"..frame.info or ""
     frame.text:SetText(name .. info)
     frame.info = nil
+
+    if frame.compact then return end
 
     -- update info states
     if not UnitIsConnected(frame.unitstr) then
@@ -561,15 +564,20 @@ module.enable = function(self)
     pushed:SetHeight(110)
     pushed:SetAlpha(.5)
 
-    raid.toggle:SetScript("OnMouseDown", function()
-      if IsShiftKeyDown() then
-        this.dragging = true
+    local function UpdateToggleDrag()
+      local px, py = GetCursorPosition()
+      local scale = raid.toggle:GetEffectiveScale()
+      px, py = px / scale, py / scale
+      raid.toggle:ClearAllPoints()
+      raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
+    end
 
-        local px, py = GetCursorPosition()
-        local scale = this:GetEffectiveScale()
-        px, py = px / scale, py / scale
-        raid.toggle:ClearAllPoints()
-        raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
+    raid.toggle:SetScript("OnMouseDown", function()
+      local shift = API.IsShiftKeyDown and API.IsShiftKeyDown() or IsShiftKeyDown()
+      if shift then
+        this.dragging = true
+        this:SetScript("OnUpdate", UpdateToggleDrag)
+        UpdateToggleDrag()
       else
         if raid.cluster:IsShown() then
           raid.toggle.icon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Disabled")
@@ -583,15 +591,7 @@ module.enable = function(self)
 
     raid.toggle:SetScript("OnMouseUp", function()
       this.dragging = false
-    end)
-
-    raid.toggle:SetScript("OnUpdate", function()
-      if not this.dragging then return end
-
-      local px, py = GetCursorPosition()
-      local scale = this:GetEffectiveScale()
-      px, py = px / scale, py / scale
-      raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
+      this:SetScript("OnUpdate", nil)
     end)
   end
 

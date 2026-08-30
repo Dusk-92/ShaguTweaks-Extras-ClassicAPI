@@ -20,6 +20,8 @@ module.enable = function(self)
   ShaguTweaks.UnitFrame_NewComponent('compact layout', {
     events = { },
     create = function(frame)
+      frame.compact = true
+
       -- hide mana bar
       frame.mana:Hide()
 
@@ -32,14 +34,17 @@ module.enable = function(self)
 
     end,
     update = function(frame, event)
-      -- disable all second lines
-      frame.info = nil
+      -- compact mode is handled by the base text component
     end
   })
 
   -- wait for the game to be loaded
   local delay = CreateFrame("Frame")
   delay:SetScript("OnUpdate", function()
+      this.elapsed = (this.elapsed or 0) + arg1
+      if this.elapsed < .10 then return end
+      this.elapsed = 0
+
       if ShaguTweaksRaidHeaders then
         -- modify group headers
         for i=1, 8 do
@@ -58,10 +63,9 @@ module.enable = function(self)
             ShaguTweaksRaidHeaders[i]:SetAlpha(.75)
           end
         end
+        -- disable delay only after headers were actually available
+        this:Hide()
       end
-
-      -- disable delay
-      this:Hide()
   end)
 
 end
