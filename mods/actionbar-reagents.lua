@@ -26,19 +26,31 @@ module.enable = function(self)
   reagentcounter:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
   reagentcounter:RegisterEvent("BAG_UPDATE")
 
+  -- Hidden frames still receive events, but do not execute OnUpdate.
+  -- Wake for one frame only when work is pending.
+  reagentcounter:Hide()
   reagentcounter:SetScript("OnEvent", function()
-    this.event = true
+    this.pending = true
+    if event ~= "BAG_UPDATE" then
+      this.rescan = true
+    end
+    this:Show()
   end)
 
   reagentcounter:SetScript("OnUpdate", function()
-    if not this.event then return end
-
-    -- update all slots after each event
-    for slot = 1, 120 do
-      reagentcounter.ScanSlot(slot)
+    if not this.pending then
+      this:Hide()
+      return
     end
 
-    -- scan for all reagent item counts
+    -- Tooltip scans are only required when the action layout changed.
+    if this.rescan then
+      for slot = 1, 120 do
+        reagentcounter.ScanSlot(slot)
+      end
+    end
+
+    -- Bag changes only need fresh counts for reagents already discovered.
     for item in pairs(reagent_counts) do
       reagent_counts[item] = GetItemCount(item)
     end
@@ -47,24 +59,27 @@ module.enable = function(self)
     for _, prefix in pairs(bars) do
       for i = 1, NUM_ACTIONBAR_BUTTONS do
         local button = _G[prefix .. "Button" .. i]
-        local text = _G[button:GetName().."Count"]
-        local slot = ActionButton_GetPagedID(button)
+        if button then
+          local text = _G[button:GetName().."Count"]
+          local slot = ActionButton_GetPagedID(button)
 
-        if reagent_slots[slot] then
-          text:SetText(reagent_counts[reagent_slots[slot]])
-        elseif not IsConsumableAction(slot) then
-          text:SetText()
+          if text then
+            if reagent_slots[slot] then
+              text:SetText(reagent_counts[reagent_slots[slot]])
+            elseif not IsConsumableAction(slot) then
+              text:SetText()
+            end
+          end
         end
       end
     end
 
-    -- remove event trigger
-    this.event = nil
+    this.pending = nil
+    this.rescan = nil
+    this:Hide()
   end)
 
   reagentcounter.ScanSlot = function(slot)
-    local texture = GetActionTexture(slot)
-
     -- update buttons that previously had an reagent
     if reagent_slots[slot] and not HasAction(slot) then
       reagent_slots[slot] = nil

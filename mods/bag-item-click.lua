@@ -1,5 +1,7 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local API = ShaguTweaks.API or {}
+local hooksecurefunc = ShaguTweaks.hooksecurefunc
 
 local module = ShaguTweaks:register({
   title = T["Bag Item Click"],
@@ -23,10 +25,16 @@ module.enable = function(self)
     return AuctionFrame and AuctionFrame:IsShown() and AuctionFrameAuctions and AuctionFrameAuctions:IsShown()
   end
 
-  -- overwrite use/trade logic unless shift is pressed
+  local function ShiftDown()
+    if API.IsShiftKeyDown then return API.IsShiftKeyDown() end
+    return IsShiftKeyDown()
+  end
+
+  -- Interception is intentional here: the feature must be able to suppress the
+  -- default item use while trade/auction actions are active.
   local pfHookUseContainerItem = _G.UseContainerItem
   function _G.UseContainerItem(bag, slot)
-    if IsTrading() and not IsShiftKeyDown() then
+    if IsTrading() and not ShiftDown() then
       -- move item to trade window
       PickupContainerItem(bag, slot)
       local slot = TradeFrame_GetAvailableSlot()
@@ -34,13 +42,13 @@ module.enable = function(self)
       if CursorHasItem() then
         ClearCursor()
       end
-    elseif IsAuctionBrowsing() and not IsShiftKeyDown() then
+    elseif IsAuctionBrowsing() and not ShiftDown() then
       -- search item in auction house
       local link = GetContainerItemLink(bag, slot)
       local name = link and string.sub(link, string.find(link, "%[")+1, string.find(link, "%]")-1) or ""
       BrowseName:SetText(name)
       AuctionFrameBrowse_Search()
-    elseif IsAuctionSelling() and not IsShiftKeyDown() then
+    elseif IsAuctionSelling() and not ShiftDown() then
       -- sell item to auction house
       PickupContainerItem(bag, slot)
       AuctionsItemButton:Click()
@@ -53,21 +61,11 @@ module.enable = function(self)
     end
   end
 
-  -- detect bag button tooltips
-  local showHelperNextTooltip = false
-  local pfHookSetBagItem = GameTooltip.SetBagItem
-  function GameTooltip.SetBagItem(self, container, slot)
-    showHelperNextTooltip = IsTrading() or IsAuctionBrowsing() or IsAuctionSelling()
-    return pfHookSetBagItem(self, container, slot)
-  end
-
-  -- add helper text to tooltips
-  local tooltip = CreateFrame("Frame", "pfItemClickHelpMessage", GameTooltip)
-  tooltip:SetScript("OnShow", function()
-    if showHelperNextTooltip then
-      GameTooltip:AddLine(T["Hold [Shift] to use item."], 0.50, 0.75, 1.00)
-      GameTooltip:Show()
-      showHelperNextTooltip = false
+  -- Append helper text after the native tooltip method instead of replacing it.
+  hooksecurefunc(GameTooltip, "SetBagItem", function(self, container, slot)
+    if IsTrading() or IsAuctionBrowsing() or IsAuctionSelling() then
+      self:AddLine(T["Hold [Shift] to use item."], 0.50, 0.75, 1.00)
+      self:Show()
     end
   end)
 end

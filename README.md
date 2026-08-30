@@ -1,116 +1,88 @@
-# ShaguTweaks-extras
+# 🧩 ShaguTweaks Extras — ClassicAPI
 
-***UPDATED FOR TWOW 1.18.1 COMPATIBILITY - REVEAL UNEXPLORED FIX*** 
+A complementary fork of **ShaguTweaks-extras** intended to be used with
+[Dusk-92/ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI).
 
-This addon extends the capabilities of [ShaguTweaks](https://github.com/shagu/ShaguTweaks) by offering optional modules that can be easily toggled on or off. The new features integrate fully with the "Advanced Options" panel, providing a seamless experience.
+The goal is to keep the useful Extras modules while removing functionality that
+is already integrated into the main ShaguTweaks-ClassicAPI fork, hardening
+legacy hooks, and using the shared `ShaguTweaks.API` ClassicAPI bridge where it
+actually improves reliability.
 
-For a detailed view of what's new and improved, check out the feature list below.
+## Requirements
 
+- **ShaguTweaks-ClassicAPI** — required
+- **ClassicAPI** — required indirectly by ShaguTweaks-ClassicAPI
+- **SuperWoW** — optional, as in the main fork
 
-## Installation (Vanilla, 1.12)
+## Installation
 
-> [!IMPORTANT]
->
-> **This addon requires you to have [ShaguTweaks](https://github.com/shagu/ShaguTweaks) installed.**
->
-> Install instructions for ShaguTweaks can be found on the [GitHub Page](https://github.com/shagu/ShaguTweaks).
+1. Install **ShaguTweaks-ClassicAPI** and rename its folder to `ShaguTweaks`.
+2. Download this repository.
+3. Rename this addon folder to **`ShaguTweaks-extras`**.
+4. Copy it to `World of Warcraft\Interface\AddOns\ShaguTweaks-extras`.
+5. Restart the game.
 
-1. Download **[Latest Version](https://github.com/shagu/ShaguTweaks-extras/archive/master.zip)**
-2. Unpack the Zip file
-3. Rename the folder "ShaguTweaks-extras-master" to "ShaguTweaks-extras"
-4. Copy "ShaguTweaks-extras" into Wow-Directory\Interface\AddOns
-5. Restart Wow
+The `ShaguTweaks-extras` folder name is kept for compatibility with bundled
+texture paths and the original addon layout.
 
+## Removed duplicates
 
-## Features
+These modules are intentionally not shipped here because equivalent/improved
+versions already exist in ShaguTweaks-ClassicAPI:
+
+- **Chat History** → integrated into **Chat Tweaks**
+- **Show Energy Ticks** → integrated as **Unit Frame Energy & Mana Tick**
+
+## Included modules
 
 ### Action Bar
-- **Center Vertical Actionbar**  
-  *Center the vertical actionbar on the right side.*
-
-- **Dragonflight Gryphons**  
-  *Replaces actionbar gryphons with the dragonflight version.*
-
-- **Floating Actionbar**  
-  *Removes all background textures and lets the actionbar float.*
-
-- **Reagent Counter**  
-  *Shows a reagent counter on action buttons.*
-
-- **Show Bags**  
-  *Shows bag and keyring buttons when using the reduced actionbar layout. Hold Ctrl+Shift to move the bag bar.*
-
-- **Show Micro Menu**  
-  *Shows micro menu buttons when using the reduced actionbar layout. Hold Ctrl+Shift to move the micro menu.*
-
-<p align="center"><img src="screenshots/actionbar.gif"></p>
+- Center Vertical Actionbar
+- Dragonflight Gryphons
+- Floating Actionbar
+- Reagent Counter
+- Show Bags
+- Show Micro Menu
 
 ### Chat
-- **Chat History**  
-  *Save chat history of all non-combatlog windows and restore it on login.*
-
-- **Chat Timestamps**  
-  *Add timestamps to chat messages.*
-
-- **Center Text Input Box**  
-  *Move the chat input box to the center of the screen.*
-
-- **Enable Text Shadow**  
-  *Enable text shadow in all chat frames.*
-
+- Chat Timestamps
+- Center Text Input Box
+- Enable Text Shadow
 
 ### General
-- **Bag Item Click**  
-  *Send items to trade window or auction house search via right click.*
-
-- **Bag Search Bar**  
-  *Adds a search field to the bag which allows you to search bag, keyring and bank slots.*
-
-- **Show Energy Ticks**  
-  *Show energy and mana ticks on the player unit frame.*
-
-- **Reveal World Map**  
-  *Reveals unexplored world map areas and shows exploration hints.*
-
+- Bag Item Click
+- Bag Search Bar
+- Reveal World Map
 
 ### Macro
-- **Macro Icons**  
-  *Detect showtooltip and spells in macros to use them on action buttons.*
-
-- **Macro Tweaks**  
-  *Add /equip command to macros, remove #showtooltip from chat and hide macro commands from history.*
-
+- Macro Icons
+- Macro Tweaks
 
 ### Raid
-<img src="screenshots/raid.jpg" float="right" align="right" width="33%">
+- Enable Raid Frames
+- Hide Party Frames
+- Show Aggro Indicators
+- Show Combat Feedback
+- Show Dispel Indicators
+- Show Group Headers
+- Show Healing Predictions
+- Use As Party Frames
+- Use Compact Layout
 
-- **Enable Raid Frames**  
-  *Very simple raid frames with only the most basic features.*
+## Compatibility approach
 
-- **Hide Party Frames**  
-  *Disable default party frames while the raidframes are active.*
+ClassicAPI is consumed through the shared `ShaguTweaks.API` capability layer.
+Modules that do not benefit from ClassicAPI are deliberately left on native
+Vanilla UI APIs instead of adding unnecessary abstraction.
 
-- **Show Aggro Indicators**  
-  *Show indicators on raid members that are currently attacked by other units. (This only works if the unit is a target of a raid member)*
+Legacy global replacements are reduced wherever the feature can be implemented
+with the safer ShaguTweaks hook helpers.
 
-- **Show Combat Feedback**  
-  *Show combat feedback numbers on health bars.*
+## Credits
 
-- **Show Dispel Indicators**  
-  *Show indicators for units affected by curse, magic, poison or diseases based on your class.*
+Original addon and modules by **Shagu**.
 
-- **Show Group Headers**  
-  *Display group headers on raid frames*
+Additional maintenance and Turtle WoW 1.18.1 work by **paokkerkir**.
 
-- **Show Healing Predictions**  
-  *Show healing predictions that are received in a healcomm compatible protocol.*
+ClassicAPI fork maintenance and compatibility work by **Dusk-92**.
 
-- **Use As Party Frames**  
-  *Use raid frames to display party members in regular groups*
-
-- **Use Compact Layout**  
-  *Reduces the raid frame size and the displayed elements. As a healer, you should never use this layout.*
-
-
-## Contact & Support
-Due to time constraints, I am currently unable to process feature requests. However, if you encounter any bugs or issues, please don't hesitate to reach out to me through Discord.
+Released under the original MIT license.

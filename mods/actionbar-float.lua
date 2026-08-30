@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local hooksecurefunc = ShaguTweaks.hooksecurefunc
 
 local module = ShaguTweaks:register({
   title = T["Floating Actionbar"],
@@ -52,19 +53,22 @@ module.enable = function(self)
   -- replace experience bar texture
   MainMenuExpBar:SetStatusBarTexture("Interface\\AddOns\\ShaguTweaks-extras\\img\\xpbar")
   local _, _, _, _, _, background = MainMenuExpBar:GetRegions()
-  background:SetTexture("Interface\\AddOns\\ShaguTweaks-extras\\img\\xpbar")
-  background:SetVertexColor(0, 0, 0, .5)
+  if background then
+    background:SetTexture("Interface\\AddOns\\ShaguTweaks-extras\\img\\xpbar")
+    background:SetVertexColor(0, 0, 0, .5)
+  end
 
-  -- update reputation bar position
-  local HookReputationWatchBar_Update = ReputationWatchBar_Update
-  ReputationWatchBar_Update = function(newLevel)
-    HookReputationWatchBar_Update(newLevel)
+  -- keep the custom reputation position without replacing Blizzard's updater
+  local function UpdateReputationPosition()
     if MainMenuExpBar:IsShown() then
       ReputationWatchBar:SetPoint("BOTTOM", MainMenuBar, "TOP", 0, -7)
     else
       ReputationWatchBar:SetPoint("TOP", MainMenuBar, "TOP", 0, 2)
     end
   end
+
+  hooksecurefunc("ReputationWatchBar_Update", UpdateReputationPosition)
+  UpdateReputationPosition()
 
   -- hide max level top frame
   MainMenuBarMaxLevelBar:SetAlpha(0)

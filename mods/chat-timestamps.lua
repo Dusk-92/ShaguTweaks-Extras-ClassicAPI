@@ -30,14 +30,15 @@ module.enable = function(self)
 
     -- add hooks to each frame
     for i=1,NUM_CHAT_WINDOWS do
-      local original = _G["ChatFrame"..i].AddMessage
-      _G["ChatFrame"..i].AddMessage = function(frame, msg, a1, a2, a3, a4, a5)
-        -- ignore empty messages
-        if not msg then return end
+      local frame = _G["ChatFrame"..i]
+      if frame and not frame.ShaguTweaksExtrasTimestampAddMessage then
+        frame.ShaguTweaksExtrasTimestampAddMessage = frame.AddMessage
+        frame.AddMessage = function(self, msg, a1, a2, a3, a4, a5)
+          if not msg then return end
 
-        -- add timestamp to chat
-        msg = color .. left .. date(format) .. right .. "|r " .. msg
-        original(frame, msg, a1, a2, a3, a4, a5)
+          msg = color .. left .. date(format) .. right .. "|r " .. msg
+          self:ShaguTweaksExtrasTimestampAddMessage(msg, a1, a2, a3, a4, a5)
+        end
       end
     end
 end

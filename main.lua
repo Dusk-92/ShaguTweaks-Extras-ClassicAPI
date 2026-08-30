@@ -1,1 +1,1 @@
-ShaguTweaks.provider = "|cffFFCC55Extras:|r"
+ShaguTweaks.provider = "|cffFFCC55Extras ClassicAPI:|r"

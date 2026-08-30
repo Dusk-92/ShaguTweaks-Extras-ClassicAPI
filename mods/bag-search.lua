@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Bag Search Bar"],
@@ -50,8 +51,24 @@ module.enable = function(self)
     disable()
   end
 
+  local function GetContainerItemName(bag, slot)
+    if API.GetContainerItemID and API.GetItemNameByID then
+      local itemID = API.GetContainerItemID(bag, slot)
+      local name = itemID and API.GetItemNameByID(itemID)
+      if name then return name end
+    end
+
+    local link = GetContainerItemLink(bag, slot)
+    if not link then return "" end
+
+    local startPos = string.find(link, "%[")
+    local endPos = string.find(link, "%]")
+    if not startPos or not endPos or endPos <= startPos then return "" end
+    return string.sub(link, startPos + 1, endPos - 1)
+  end
+
   local query = function()
-    local text = strlower(search:GetText())
+    local text = strlower(search:GetText() or "")
 
     -- bag search
     for i = 1, 12 do
@@ -62,19 +79,17 @@ module.enable = function(self)
 
         for j = 1, MAX_CONTAINER_ITEMS do
           local button = _G[name.."Item"..j]
-          local texture = _G[button:GetName().."IconTexture"]
-
           if button then
-            local slot = button and button:GetID()
+            local texture = _G[button:GetName().."IconTexture"]
+            local slot = button:GetID()
 
-            local link = GetContainerItemLink(bag, slot)
             button:SetAlpha(.25)
-            texture:SetDesaturated(1)
+            if texture then texture:SetDesaturated(1) end
 
-            local item = link and string.sub(link, string.find(link, "%[")+1, string.find(link, "%]")-1) or ""
+            local item = GetContainerItemName(bag, slot)
             if strfind(strlower(item), text, 1, true) then
               button:SetAlpha(1)
-              texture:SetDesaturated(0)
+              if texture then texture:SetDesaturated(0) end
             end
           end
         end
@@ -87,11 +102,10 @@ module.enable = function(self)
         local button = _G["BankFrameItem"..i]
         local texture = button and _G[button:GetName().."IconTexture"]
         if button and texture then
-          local link = GetContainerItemLink(-1, i)
           button:SetAlpha(.25)
           texture:SetDesaturated(1)
 
-          local item = link and string.sub(link, string.find(link, "%[")+1, string.find(link, "%]")-1) or ""
+          local item = GetContainerItemName(-1, i)
           if strfind(strlower(item), text, 1, true) then
             button:SetAlpha(1)
             texture:SetDesaturated(0)

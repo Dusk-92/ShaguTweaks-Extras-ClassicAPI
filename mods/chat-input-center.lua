@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local rgbhex = ShaguTweaks.rgbhex
+local hooksecurefunc = ShaguTweaks.hooksecurefunc
 
 local module = ShaguTweaks:register({
   title = T["Center Text Input Box"],
@@ -19,21 +19,18 @@ module.enable = function(self)
   ChatFrameEditBox:ClearAllPoints()
   ChatFrameEditBox:SetWidth(300)
 
-  -- reload custom frame positions after original frame manage runs
-  local hookUIParent_ManageFramePositions = UIParent_ManageFramePositions
-  UIParent_ManageFramePositions = function(a1, a2, a3)
-    -- run original function
-    hookUIParent_ManageFramePositions(a1, a2, a3)
-
-    -- let inputbox dodge certain frames
+  local function UpdateInputPosition()
     local top = 0
-    for id, frame in pairs(dodge_frames) do
-      if frame:IsVisible() and frame:GetTop() then
+    for _, frame in pairs(dodge_frames) do
+      if frame and frame:IsVisible() and frame:GetTop() then
         top = math.max(top, frame:GetTop())
       end
     end
 
-    -- set new position
+    ChatFrameEditBox:ClearAllPoints()
     ChatFrameEditBox:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, top)
   end
+
+  hooksecurefunc("UIParent_ManageFramePositions", UpdateInputPosition)
+  UpdateInputPosition()
 end

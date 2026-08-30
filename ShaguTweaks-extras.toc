@@ -1,8 +1,7 @@
 ## Interface: 11200
-## Title: |cffffcc00Shagu|cffffffffTweaks |cffcccccc[Extras]
-## Author: Shagu - modified by paokkerkir
-## Notes: A collection of tweaks and enhancements to the Default UI
-## Notes-ruRU: Коллекция настроек и улучшений для стандартного пользовательского интерфейса.
+## Title: |cffffcc00Shagu|cffffffffTweaks |cffcccccc[Extras ClassicAPI]
+## Author: Shagu - modified by paokkerkir / Dusk-92
+## Notes: Complementary modules for ShaguTweaks-ClassicAPI
 ## Version: GIT
 ## Dependencies: ShaguTweaks
 
@@ -26,14 +25,12 @@ mods\actionbar-df-gryphon.lua
 mods\actionbar-right-center.lua
 mods\actionbar-reagents.lua
 mods\actionbar-float.lua
-mods\unitframe-energytick.lua
 mods\bag-item-click.lua
 mods\bag-search.lua
 mods\worldmap-reveal.lua
 
 # chat
 mods\chat-input-center.lua
-mods\chat-history.lua
 mods\chat-text-shadow.lua
 mods\chat-timestamps.lua
 
