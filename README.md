@@ -12,7 +12,7 @@ Focused on **stability, compatibility and performance** while keeping the origin
 - **[ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI) — required**
 - **[SuperWoW](https://github.com/balakethelock/SuperWoW) — optional / recommended**
 
-ClassicAPI is a hard requirement and the primary API layer. Extras modules call the shared `ShaguTweaks.API` bridge, which prefers ClassicAPI and centralizes any necessary Vanilla fallback. Native Vanilla UI APIs are kept only where ClassicAPI has no equivalent.
+ClassicAPI is a hard requirement and the primary API layer. Extras uses the shared `ShaguTweaks.API` bridge for ClassicAPI-backed functionality. Native WoW APIs remain in use only for functionality outside ClassicAPI's scope.
 
 ## 📦 Installation
 
@@ -52,7 +52,7 @@ Settings: **Esc → Advanced Options**.
 
 **Reagent Counter** also benefits indirectly: its shared `ShaguTweaks.GetItemCount` helper now uses ClassicAPI container/item data through the same bridge.
 
-Other modules remain on native Vanilla UI/game APIs only where ClassicAPI does not provide an equivalent. ClassicAPI/Vanilla fallback decisions stay centralized in `ShaguTweaks.API` instead of being duplicated inside Extras modules.
+Other modules use native WoW UI/game APIs only for functionality outside ClassicAPI's scope. ClassicAPI-backed functionality is centralized through `ShaguTweaks.API`.
 
 ## ⚙️ Modules
 
@@ -113,7 +113,7 @@ The following original Extras modules are not included because improved versions
 - ClassicAPI required
 - ShaguTweaks-ClassicAPI integration
 - ClassicAPI-first API integration
-- Centralized Vanilla compatibility fallbacks
+- Shared `ShaguTweaks.API` bridge for ClassicAPI-backed functionality
 - Turtle WoW-like server compatibility
 - SuperWoW compatibility
 
