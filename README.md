@@ -46,11 +46,11 @@ Settings: **Esc → Advanced Options**.
 - Macro Icons
 - Macro Tweaks
 - Raid Frames
+- Reagent Counter
+- Reveal World Map
 - Show Dispel Indicators
 - Show Bags
 - Show Micro Menu
-
-**Reagent Counter** also benefits indirectly from ClassicAPI through the shared `ShaguTweaks.GetItemCount` helper.
 
 Other modules can also benefit indirectly from ClassicAPI through shared ShaguTweaks libraries and helpers.
 
