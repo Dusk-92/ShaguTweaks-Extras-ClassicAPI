@@ -15,8 +15,18 @@ module.enable = function(self)
   -- This interception is intentional: #showtooltip is macro metadata and must
   -- not be sent as chat text by the Vanilla macro parser.
   local hookSendChatMessage = _G.SendChatMessage
+  local function IsShowTooltipMetadata(msg)
+    if not msg then return false end
+
+    local line = string.gsub(msg, "^%s+", "")
+    line = string.gsub(line, "%s+$", "")
+
+    return line == "#showtooltip"
+      or string.find(line, "^#showtooltip%s+") ~= nil
+  end
+
   function _G.SendChatMessage(msg, a1, a2, a3, a4, a5, a6, a7, a8)
-    if msg and string.find(msg, "^#showtooltip%s") then return end
+    if IsShowTooltipMetadata(msg) then return end
     return hookSendChatMessage(msg, a1, a2, a3, a4, a5, a6, a7, a8)
   end
 

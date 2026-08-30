@@ -158,8 +158,12 @@ paged/bonus bars.
 Macro bodies are now cached once per actionbar event instead of scanning all 36
 macro slots again for every button.
 
-`#showtooltip` retains priority, followed by the original supported
-`--showtooltip`, `/cast`, `/pfcast` and `CastSpellByName` patterns.
+`#showtooltip Spell` retains explicit priority. A bare `#showtooltip` now
+uses ClassicAPI's O(1) `GetMacroSpell(macroSlot)` result, matching the expected
+modern behavior where the first resolved cast supplies the icon/tooltip.
+The old text parser remains as fallback for stale macro caches and `/pfcast`.
+`UPDATE_MACROS` now triggers an immediate action-button rescan after editing a
+macro.
 
 #### Macro Tweaks — fixed / ClassicAPI-aware
 
@@ -188,7 +192,9 @@ contain digits are not accidentally interpreted as inventory slots.
 
 The `SendChatMessage` interception and edit-box history wrapper remain
 intentional because these features must suppress macro metadata/history rather
-than merely observe calls.
+than merely observe calls. The metadata filter now handles both
+`#showtooltip Spell` and a bare `#showtooltip` line (including surrounding
+whitespace), so the latter can no longer leak into chat.
 
 ### Raid
 

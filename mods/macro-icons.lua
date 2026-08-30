@@ -26,31 +26,45 @@ module.enable = function(self)
     return cache
   end
 
-  local function GetMacroBody(actionSlot, cache)
+  local function GetMacroData(actionSlot, cache)
     if API.GetActionInfo then
       local actionType, id = API.GetActionInfo(actionSlot)
       if actionType == "macro" and id then
         local _, _, body = GetMacroInfo(id)
-        if body then return body end
+        if body then return id, body end
       end
     end
 
     local macroName = GetActionText(actionSlot)
     local entry = macroName and cache[macroName]
-    return entry and entry.body or nil
+    if entry then return entry.id, entry.body end
   end
 
-  local function ResolveSpell(body)
+  local function ParseSpellText(match)
+    if not match then return end
+    local _, _, spell, rank = string.find(match, "(.+)%((.+)%)")
+    return spell or match, rank
+  end
+
+  local function ResolveSpell(body, macroSlot)
     if not body then return end
 
+    local customTooltip
     local fallback
-    for line in gfind(body, "[^%\n]+") do
-      local _, _, match = string.find(line, "^#showtooltip%s+(.+)")
-      if match then return match end
 
-      if not fallback then
-        _, _, fallback = string.find(line, "%-%-showtooltip%s+(.+)")
+    for line in gfind(body, "[^%\n]+") do
+      -- Explicit #showtooltip always wins.
+      local _, _, match = string.find(line, "^#showtooltip%s+(.+)")
+      if match then
+        return ParseSpellText(match)
       end
+
+      -- Preserve the historical ShaguTweaks custom override.
+      if not customTooltip then
+        _, _, customTooltip = string.find(line, "%-%-showtooltip%s+(.+)")
+      end
+
+      -- Keep text parsing as a fallback for old/stale macro caches and /pfcast.
       if not fallback then
         _, _, fallback = string.find(line, "^/cast%s+(.+)")
       end
@@ -62,7 +76,21 @@ module.enable = function(self)
       end
     end
 
-    return fallback
+    if customTooltip then
+      return ParseSpellText(customTooltip)
+    end
+
+    -- ClassicAPI already resolves and caches the macro's primary spell.
+    -- This is the correct modern behavior for a bare "#showtooltip" line and
+    -- also covers /castsequence, CastSpellByName and CastSpellNoToggle.
+    if macroSlot and type(_G.GetMacroSpell) == "function" then
+      local spell, rank = _G.GetMacroSpell(macroSlot)
+      if spell then
+        return spell, rank ~= "" and rank or nil
+      end
+    end
+
+    return ParseSpellText(fallback)
   end
 
   local function ButtonMacroScan(bar, macroCache)
@@ -81,11 +109,9 @@ module.enable = function(self)
       local texture = GetActionTexture(actionSlot)
       button.spellslot, button.booktype = nil, nil
 
-      local body = GetMacroBody(actionSlot, macroCache)
-      local match = ResolveSpell(body)
-      if match then
-        local _, _, spell, rank = string.find(match, "(.+)%((.+)%)")
-        spell = spell or match
+      local macroSlot, body = GetMacroData(actionSlot, macroCache)
+      local spell, rank = ResolveSpell(body, macroSlot)
+      if spell then
         button.spellslot, button.booktype = libspell.GetSpellIndex(spell, rank)
 
         if button.spellslot and button.booktype then
@@ -110,6 +136,7 @@ module.enable = function(self)
   macroicons:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
   macroicons:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
   macroicons:RegisterEvent("ACTIONBAR_SHOWGRID")
+  macroicons:RegisterEvent("UPDATE_MACROS")
   macroicons:SetScript("OnEvent", function()
     local macroCache = BuildMacroCache()
     for _, bar in pairs(bars) do
