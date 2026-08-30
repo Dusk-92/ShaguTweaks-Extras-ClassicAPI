@@ -41,13 +41,10 @@ container item link/count data.
 - **Show Dispel Indicators** — normalized `GetDebuffType` via the bridge.
 - **Show Bags** — Shift/Control state via the bridge.
 - **Show Micro Menu** — Shift/Control state via the bridge.
-
-### Indirect ClassicAPI-first module
-
-- **Reagent Counter** uses the shared `ShaguTweaks.GetItemCount` helper. That
-  helper now obtains stack counts, item IDs and item names through
-  `ShaguTweaks.API`, so the module receives ClassicAPI container/item data
-  without duplicating API logic locally.
+- **Reagent Counter** — action spell/macro resolution, spell reagents and
+  direct item counts via the bridge.
+- **Reveal World Map** — unexplored overlay data and live client map metadata
+  via the bridge.
 
 ### Modules intentionally remaining on native APIs
 
@@ -68,7 +65,6 @@ not expose a replacement required by this addon:
 - Show Healing Predictions
 - Hide Party Frames
 - Use As Party Frames
-- Reveal World Map
 
 Examples include `CreateFrame`, anchoring/layout methods, chat-frame
 `AddMessage`, `UseContainerItem`, `GetContainerNumSlots`,
@@ -91,6 +87,11 @@ The paired ShaguTweaks-ClassicAPI branch adds:
 - `API.UnitInRange`
 - `API.GetContainerItemLink`
 - `API.GetContainerItemStackCount`
+- `API.GetSpellReagents`
+- `API.GetItemCount`
+- `API.GetMapOverlays`
+- `API.GetUnexploredMapTextures`
+- `API.GetAreaInfo`
 
 `API.UnitInRange` prefers ClassicAPI's reach-aware 40-yard implementation.
 It explicitly handles the player's own frame and keeps the old interaction
@@ -384,17 +385,16 @@ Previously replaced `ReputationWatchBar_Update` globally. It now uses the
 shared ShaguTweaks safe hook helper and preserves Blizzard/Turtle behavior.
 Added a guard for the XP-bar background region.
 
-#### Reagent Counter — optimized
+#### Reagent Counter — ClassicAPI-backed / optimized
 
-The tooltip scan is unavoidable because ClassicAPI does not expose the reagent
-requirements needed for this action-button feature. Item counting itself is now
-ClassicAPI-first indirectly through the shared `ShaguTweaks.GetItemCount`
-helper. Previously an `OnUpdate` ran permanently and all 120 action slots were
-rescanned after every bag event.
+ClassicAPI now resolves action slots and macros to spell IDs, exposes spell
+reagent item IDs directly, and provides direct inventory counts. The module no
+longer scans action tooltips or parses localized reagent text.
 
-Now the frame sleeps while idle. Action-layout events request a one-frame
-tooltip rescan; `BAG_UPDATE` only refreshes counts for reagents already known.
-Button and count-font accesses are also nil-guarded.
+The frame still sleeps while idle. Action-layout or macro events rebuild the
+slot-to-reagent mapping once; `BAG_UPDATE` only refreshes counts for reagent
+IDs already referenced by active actions. The action button keeps the original
+single-counter behavior by displaying the first reagent's owned count.
 
 #### Center Vertical Actionbar — retained
 
@@ -439,20 +439,20 @@ Item IDs/names now use `ShaguTweaks.API.GetContainerItemID` and
 the Vanilla fallback centralized. This improves compatibility with ClassicAPI
 item caches and custom Turtle items.
 
-#### Reveal World Map — critical fix / hardened
+#### Reveal World Map — ClassicAPI-backed / simplified
 
-Fixed a broken `create_hash` call that omitted the `prefix` argument and
-shifted all remaining parameters. This could feed a number into string
-operations during map overlay processing.
+The old hand-maintained Vanilla and Turtle overlay tables were removed.
+ClassicAPI now reads `WorldMapOverlay.dbc` from the active client and returns
+the exact unexplored overlays and resolved tile layout, including custom
+Turtle-like zones.
 
-The module no longer manually replaces `WorldMapFrame_Update`. A pre-hook
-clears overlay textures and a post-hook adds the reveal layer while preserving
-the native/Turtle updater.
+The module keeps Blizzard's normal explored-map rendering untouched and adds
+only the unexplored reveal layer in a safe post-hook of
+`WorldMapFrame_Update`. Exploration markers use ClassicAPI hit rectangles and
+localized area names when available.
 
-Internal overlay state is now anchored explicitly on `WorldMapFrame` instead
-of relying on the implicit global `this` value.
-
-Turtle WoW 1.18.1 custom map overlay data from upstream is preserved.
+This removes the large static map database and the manual tile-grid logic while
+making the reveal data follow the installed client's actual maps.
 
 ### Chat
 
