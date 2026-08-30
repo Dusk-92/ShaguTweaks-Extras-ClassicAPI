@@ -16,10 +16,13 @@ module.enable = function(self)
   local inCombat = UnitAffectingCombat("player") and true or false
 
   local function Apply()
-    if inCombat and not API.IsShiftKeyDown() then
-      GameTooltip:SetAlpha(0)
+    local shouldHide = inCombat and not API.IsShiftKeyDown()
+    local alpha = GameTooltip:GetAlpha()
+
+    if shouldHide then
+      if alpha ~= 0 then GameTooltip:SetAlpha(0) end
     else
-      GameTooltip:SetAlpha(1)
+      if alpha ~= 1 then GameTooltip:SetAlpha(1) end
     end
   end
 
@@ -44,25 +47,30 @@ module.enable = function(self)
     Apply()
   end)
 
-  -- Apply BEFORE the native Show call. The previous post-hook allowed the
-  -- tooltip to become visible for a rendered frame before alpha was forced to
-  -- zero, which caused the brief flash seen when mousing over a target.
+  -- Apply before the native Show call to avoid the one-frame flash.
   hooksecurefunc(GameTooltip, "Show", Apply, true)
 
-  -- Also enforce the state from the tooltip's OnShow script. This still runs
-  -- before rendering and covers code paths that adjust tooltip state while
-  -- opening it.
+  -- Some tooltip code paths can reset alpha while opening/updating the
+  -- tooltip. Re-apply after the tooltip's own scripts, but only while that
+  -- tooltip is actually shown. This is much cheaper than the original
+  -- combat-long polling frame and makes Cursor Tooltip coexist correctly.
   local oldOnShow = GameTooltip:GetScript("OnShow")
   GameTooltip:SetScript("OnShow", function()
     if oldOnShow then oldOnShow() end
     Apply()
   end)
 
-  -- Only legacy/fallback environments poll the modifier, and only in combat.
+  local oldOnUpdate = GameTooltip:GetScript("OnUpdate")
+  GameTooltip:SetScript("OnUpdate", function()
+    if oldOnUpdate then oldOnUpdate() end
+    if inCombat then Apply() end
+  end)
+
+  -- Only legacy/fallback environments need separate modifier polling.
   if not API.modifierstate then
     events.elapsed = 0
     events:SetScript("OnUpdate", function()
-      if not inCombat then return end
+      if not inCombat or not GameTooltip:IsShown() then return end
 
       this.elapsed = this.elapsed + (arg1 or 0)
       if this.elapsed < .05 then return end
