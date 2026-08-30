@@ -4,15 +4,15 @@ A complementary fork of [ShaguTweaks-extras](https://github.com/paokkerkir/Shagu
 
 Focused on **stability, compatibility and performance** while keeping the original ShaguTweaks Extras experience.
 
-> This fork is designed to be used with [ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI).
+> This fork requires **ClassicAPI** and is designed to be used with [ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI).
 
 ## 🔌 Requirements
 
+- **[ClassicAPI](https://github.com/brues-code/ClassicAPI) — required**
 - **[ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI) — required**
-- **[ClassicAPI](https://github.com/brues-code/ClassicAPI) — required through ShaguTweaks-ClassicAPI**
 - **[SuperWoW](https://github.com/balakethelock/SuperWoW) — optional / recommended**
 
-ClassicAPI is the primary API layer. Extras modules call the shared `ShaguTweaks.API` bridge, which prefers ClassicAPI and centralizes any necessary Vanilla fallback. Native Vanilla UI APIs are kept only where ClassicAPI has no equivalent.
+ClassicAPI is a hard requirement and the primary API layer. Extras modules call the shared `ShaguTweaks.API` bridge, which prefers ClassicAPI and centralizes any necessary Vanilla fallback. Native Vanilla UI APIs are kept only where ClassicAPI has no equivalent.
 
 ## 📦 Installation
 
@@ -39,7 +39,7 @@ Settings: **Esc → Advanced Options**.
 - Better Turtle WoW-like server compatibility for items, auras and UI behavior.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
-## 🔷 Mods using ClassicAPI directly
+## 🔷 Mods using ClassicAPI through ShaguTweaks.API
 
 - Bag Item Click
 - Bag Search Bar
@@ -110,6 +110,7 @@ The following original Extras modules are not included because improved versions
 
 ## 🔧 Compatibility
 
+- ClassicAPI required
 - ShaguTweaks-ClassicAPI integration
 - ClassicAPI-first API integration
 - Centralized Vanilla compatibility fallbacks
