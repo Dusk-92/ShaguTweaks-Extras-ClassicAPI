@@ -4,7 +4,7 @@ local API = ShaguTweaks.API or {}
 
 local module = ShaguTweaks:register({
   title = T["Macro Tweaks"],
-  description = T["Add /equip, /use, /startattack and /stopattack to macros, remove #showtooltip from chat and hide macro commands from history."],
+  description = T["Add /equip, /use and modern ClassicAPI macro commands, remove #showtooltip from chat and hide macro commands from history."],
   expansions = { ["vanilla"] = true, ["tbc"] = false },
   maintainer = "@shagu (GitHub)",
   category = T["Macro"],
@@ -32,6 +32,8 @@ module.enable = function(self)
         if string.find(text, "^/cast%s*") then return end
         if string.find(text, "^/startattack%s*") then return end
         if string.find(text, "^/stopattack%s*") then return end
+        if string.find(text, "^/focus%s*") then return end
+        if string.find(text, "^/clearfocus%s*") then return end
       end
       ChatFrameEditBox._AddHistoryLine(self, text)
     end
@@ -69,26 +71,49 @@ module.enable = function(self)
     end
   end
 
-  -- ClassicAPI exposes the modern non-toggling StartAttack/StopAttack verbs.
-  -- Register the corresponding slash commands so Vanilla's macro parser can
-  -- use the familiar modern syntax without falling through to "unknown command".
-  _G.SLASH_STARTATTACK1 = "/startattack"
-  _G.SlashCmdList.STARTATTACK = function(msg)
-    if type(_G.StartAttack) ~= "function" then return end
-
-    local unit
-    if msg then
-      _, _, unit = string.find(msg, "^%s*(.-)%s*$")
-      if unit == "" then unit = nil end
-    end
-
-    _G.StartAttack(unit)
+  -- ClassicAPI exposes several modern macro primitives as Lua functions but
+  -- Vanilla does not register their familiar slash-command equivalents.
+  -- Add only the small set that maps cleanly to modern macro syntax, and leave
+  -- any command already registered by another addon untouched.
+  local function TrimUnit(msg)
+    if not msg then return nil end
+    local _, _, unit = string.find(msg, "^%s*(.-)%s*$")
+    return unit ~= "" and unit or nil
   end
 
-  _G.SLASH_STOPATTACK1 = "/stopattack"
-  _G.SlashCmdList.STOPATTACK = function()
-    if type(_G.StopAttack) == "function" then
-      _G.StopAttack()
+  if not _G.SlashCmdList.STARTATTACK then
+    _G.SLASH_STARTATTACK1 = "/startattack"
+    _G.SlashCmdList.STARTATTACK = function(msg)
+      if type(_G.StartAttack) == "function" then
+        _G.StartAttack(TrimUnit(msg))
+      end
+    end
+  end
+
+  if not _G.SlashCmdList.STOPATTACK then
+    _G.SLASH_STOPATTACK1 = "/stopattack"
+    _G.SlashCmdList.STOPATTACK = function()
+      if type(_G.StopAttack) == "function" then
+        _G.StopAttack()
+      end
+    end
+  end
+
+  if not _G.SlashCmdList.FOCUS then
+    _G.SLASH_FOCUS1 = "/focus"
+    _G.SlashCmdList.FOCUS = function(msg)
+      if type(_G.FocusUnit) == "function" then
+        _G.FocusUnit(TrimUnit(msg))
+      end
+    end
+  end
+
+  if not _G.SlashCmdList.CLEARFOCUS then
+    _G.SLASH_CLEARFOCUS1 = "/clearfocus"
+    _G.SlashCmdList.CLEARFOCUS = function()
+      if type(_G.ClearFocus) == "function" then
+        _G.ClearFocus()
+      end
     end
   end
 

@@ -163,11 +163,21 @@ macro slots again for every button.
 
 #### Macro Tweaks — fixed / ClassicAPI-aware
 
-Registers modern-style `/startattack` and `/stopattack` slash commands on
-Vanilla and routes them to ClassicAPI's non-toggling `StartAttack()` and
-`StopAttack()` functions. This avoids Vanilla treating `/startattack` as an
-unknown slash command and, unlike `AttackTarget()`, repeated use cannot toggle
-an active auto-attack off.
+Registers a deliberately small set of modern-style slash commands backed by
+ClassicAPI:
+
+- `/startattack [unit]` → `StartAttack(unit)`
+- `/stopattack` → `StopAttack()`
+- `/focus [unit]` → `FocusUnit(unit)` (defaults to current target)
+- `/clearfocus` → `ClearFocus()`
+
+Each alias is only registered when another addon has not already claimed the
+same command. This keeps Macro Tweaks a compatibility/convenience layer rather
+than duplicating ClassicAPI itself.
+
+No `/castnotoggle` alias is added: ClassicAPI already recognizes
+`CastSpellNoToggle("Spell")` directly inside macro bodies and tags the action
+slot correctly, so an extra slash command would be redundant.
 
 Container item lookup now prefers ClassicAPI item IDs/names.
 

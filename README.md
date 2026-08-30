@@ -56,6 +56,7 @@ versions already exist in ShaguTweaks-ClassicAPI:
 ### Macro
 - Macro Icons
 - Macro Tweaks
+  - modern ClassicAPI aliases: `/startattack`, `/stopattack`, `/focus`, `/clearfocus`
 
 ### Raid
 - Enable Raid Frames
