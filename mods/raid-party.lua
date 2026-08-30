@@ -40,13 +40,18 @@ module.enable = function(self)
             local unitstr = index == 1 and "player" or "party" .. index-1
 
             -- assign party to first raid group of frames
-            this.cluster.frames[index].unitstr = unitstr
-            this.cluster.frames[index].groupid = 1
-            this.cluster.frames[index]:Show()
+            local frame = this.cluster.frames[index]
+            frame.unitstr = unitstr
+            frame.groupid = 1
 
-            -- save required raid frame size
             if UnitExists(unitstr) then
+              frame:Show()
+              if ShaguTweaks.UnitFrame_Refresh then
+                ShaguTweaks.UnitFrame_Refresh(frame)
+              end
               y = math.max(y, index)
+            else
+              frame:Hide()
             end
           end
         end

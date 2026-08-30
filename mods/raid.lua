@@ -93,6 +93,14 @@ local UnitFrame_NewComponent = function(name, object)
   table.insert(components, object)
 end
 
+local UnitFrame_Refresh = function(frame)
+  if not frame or not frame.unitstr or not UnitName(frame.unitstr) then return end
+
+  for _, component in ipairs(components) do
+    component.update(frame, "FRAME_REFRESH")
+  end
+end
+
 local UnitFrame_OnEnter = function()
   if not this.unitstr then return end
 
@@ -251,7 +259,8 @@ UnitFrame_NewComponent('health', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if arg1 and frame.unitstr ~= arg1 then return end
+    if (event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH")
+      and arg1 ~= frame.unitstr then return end
 
     -- update statusbar values
     frame.bar:SetMinMaxValues(0, UnitHealthMax(frame.unitstr))
@@ -295,7 +304,11 @@ UnitFrame_NewComponent('mana', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if arg1 and frame.unitstr ~= arg1 then return end
+    if (event == "UNIT_MANA" or event == "UNIT_MAXMANA"
+      or event == "UNIT_ENERGY" or event == "UNIT_MAXENERGY"
+      or event == "UNIT_RAGE" or event == "UNIT_MAXRAGE"
+      or event == "UNIT_DISPLAYPOWER")
+      and arg1 ~= frame.unitstr then return end
 
     -- update mana bar values
     frame.mana:SetMinMaxValues(0, UnitManaMax(frame.unitstr))
@@ -376,6 +389,7 @@ UnitFrame_NewComponent('highlight', {
     highlight:SetBackdrop(backdrop.border)
     highlight:SetPoint("TOPLEFT", frame, "TOPLEFT", -1.5,1.5)
     highlight:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1.5,-1.5)
+    highlight:Hide()
     frame.highlight = highlight
   end,
 
@@ -420,6 +434,7 @@ UnitFrame_NewComponent('target', {
     right:SetHeight(8)
     right:SetBlendMode('ADD')
 
+    target:Hide()
     frame.target = target
   end,
 
@@ -486,6 +501,7 @@ UnitFrame_NewComponent('range', {
 })
 
 ShaguTweaks.UnitFrame_NewComponent = UnitFrame_NewComponent
+ShaguTweaks.UnitFrame_Refresh = UnitFrame_Refresh
 
 -- Bring everything to life
 module.enable = function(self)
@@ -517,6 +533,7 @@ module.enable = function(self)
             frame.unitstr = 'raid' .. unit
             frame.groupid = group
             frame:Show()
+            UnitFrame_Refresh(frame)
 
             -- save required raid frame size
             x = math.max(x, frame.left)

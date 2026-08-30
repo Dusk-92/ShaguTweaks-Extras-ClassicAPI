@@ -31,7 +31,9 @@ module.enable = function(self)
     end,
 
     update = function(frame, event)
-      if event and event == 'UNIT_COMBAT' then
+      if event then
+        if event ~= 'UNIT_COMBAT' then return end
+
         -- update with latest values
         if arg1 ~= frame.unitstr then return end
         CombatFeedback_OnCombatEvent(arg2, arg3, arg4, arg5)

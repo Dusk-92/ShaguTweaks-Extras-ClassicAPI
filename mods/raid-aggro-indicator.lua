@@ -79,6 +79,7 @@ module.enable = function(self)
       frame.aggro.tex:SetVertexColor(1, 0, 0, 1)
       frame.aggro.tex:SetPoint("TOPLEFT", frame.aggro, "TOPLEFT", 2, -2)
       frame.aggro.tex:SetPoint("BOTTOMRIGHT", frame.aggro, "BOTTOMRIGHT", -2, 2)
+      frame.aggro:Hide()
     end,
 
     update = function(frame, event)

@@ -23,6 +23,7 @@ module.enable = function(self)
       frame.predict:SetVertexColor(0, 1, 0, 1)
       frame.predict:SetPoint("TOPLEFT", frame.bar, "TOPLEFT", 0, 0)
       frame.predict:SetPoint("BOTTOMLEFT", frame.bar, "BOTTOMLEFT", 0, 0)
+      frame.predict:Hide()
     end,
 
     update = function(frame, event)
@@ -30,21 +31,20 @@ module.enable = function(self)
       local heal = ShaguTweaks.libpredict:UnitGetIncomingHeals(frame.unitstr)
       local res = ShaguTweaks.libpredict:UnitHasIncomingResurrection(frame.unitstr)
 
-      -- update bar size if required
-      if heal ~= frame.predict_lastval then
-        if heal and heal > 0 then
-          local health, maxHealth = UnitHealth(frame.unitstr), UnitHealthMax(frame.unitstr)
-          local barWidth = frame.bar:GetWidth()
-          local healthWidth = maxHealth > 0 and barWidth * health / maxHealth or 0
-          local incWidth = maxHealth > 0 and barWidth * heal / maxHealth or 0
-          frame.predict:SetWidth(math.min(barWidth, healthWidth + incWidth))
-          frame.predict:Show()
-        else
-          frame.predict:Hide()
-        end
-
-        frame.predict_lastval = heal
+      -- Health can change while the incoming-heal amount stays constant, so
+      -- recalculate the projected width on every 250ms prediction tick.
+      if heal and heal > 0 then
+        local health, maxHealth = UnitHealth(frame.unitstr), UnitHealthMax(frame.unitstr)
+        local barWidth = frame.bar:GetWidth()
+        local healthWidth = maxHealth > 0 and barWidth * health / maxHealth or 0
+        local incWidth = maxHealth > 0 and barWidth * heal / maxHealth or 0
+        frame.predict:SetWidth(math.min(barWidth, healthWidth + incWidth))
+        frame.predict:Show()
+      else
+        frame.predict:Hide()
       end
+
+      frame.predict_lastval = heal
 
       -- update healing state
       if heal and heal > 0 then

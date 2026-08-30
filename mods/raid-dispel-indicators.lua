@@ -56,13 +56,15 @@ module.enable = function(self)
         frame.dispel[dtype].tex:SetVertexColor(unpack(color))
         frame.dispel[dtype].tex:SetPoint("TOPLEFT", frame.dispel[dtype], "TOPLEFT", 2, -2)
         frame.dispel[dtype].tex:SetPoint("BOTTOMRIGHT", frame.dispel[dtype], "BOTTOMRIGHT", -2, 2)
+        frame.dispel[dtype]:Hide()
       end
     end,
 
     update = function(frame, event)
       -- ignore empty or unrelated events
       if not event then return end
-      if arg1 and frame.unitstr ~= arg1 then return end
+      if (event == "UNIT_AURA" or event == "UNIT_AURASTATE")
+        and arg1 ~= frame.unitstr then return end
 
       -- affected debuffs
       frame.affected = frame.affected or {}

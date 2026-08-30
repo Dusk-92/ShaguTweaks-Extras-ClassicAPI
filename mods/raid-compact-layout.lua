@@ -59,8 +59,10 @@ module.enable = function(self)
       this.elapsed = 0
 
       if ShaguTweaksRaidHeaders then
+        local foundHeader = false
         for i = 1, 8 do
           if ShaguTweaksRaidHeaders[i] then
+            foundHeader = true
             local _, anchor = ShaguTweaksRaidHeaders[i]:GetPoint()
             if anchor then
               ShaguTweaksRaidHeaders[i]:ClearAllPoints()
@@ -72,7 +74,10 @@ module.enable = function(self)
             end
           end
         end
-        this:Hide()
+
+        if foundHeader then
+          this:Hide()
+        end
       elseif this.total >= 10 then
         -- Fail closed instead of polling forever if headers never materialize.
         this:Hide()
