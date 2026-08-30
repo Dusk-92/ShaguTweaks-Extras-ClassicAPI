@@ -44,9 +44,19 @@ module.enable = function(self)
     Apply()
   end)
 
-  -- If a tooltip is opened after combat started, enforce the current state
-  -- immediately without a permanent OnUpdate.
-  hooksecurefunc(GameTooltip, "Show", Apply)
+  -- Apply BEFORE the native Show call. The previous post-hook allowed the
+  -- tooltip to become visible for a rendered frame before alpha was forced to
+  -- zero, which caused the brief flash seen when mousing over a target.
+  hooksecurefunc(GameTooltip, "Show", Apply, true)
+
+  -- Also enforce the state from the tooltip's OnShow script. This still runs
+  -- before rendering and covers code paths that adjust tooltip state while
+  -- opening it.
+  local oldOnShow = GameTooltip:GetScript("OnShow")
+  GameTooltip:SetScript("OnShow", function()
+    if oldOnShow then oldOnShow() end
+    Apply()
+  end)
 
   -- Only legacy/fallback environments poll the modifier, and only in combat.
   if not API.modifierstate then
