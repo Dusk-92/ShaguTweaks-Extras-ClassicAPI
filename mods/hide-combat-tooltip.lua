@@ -16,6 +16,10 @@ module.enable = function(self)
   ShaguTweaks.HideCombatTooltipInstalled = true
 
   local originalShow = GameTooltip.Show
+  local originalSetAlpha = GameTooltip.SetAlpha
+  local originalSetOwner = GameTooltip.SetOwner
+  local originalSetUnit = GameTooltip.SetUnit
+
   local combat = UnitAffectingCombat("player") and true or false
 
   local function InCombat()
@@ -26,34 +30,59 @@ module.enable = function(self)
     return API.IsShiftKeyDown()
   end
 
-  local function Apply()
-    if InCombat() and not ShiftDown() then
-      if GameTooltip:GetAlpha() ~= 0 then
-        GameTooltip:SetAlpha(0)
-      end
-    else
-      if GameTooltip:GetAlpha() ~= 1 then
-        GameTooltip:SetAlpha(1)
-      end
-    end
+  local function ShouldHide()
+    return InCombat() and not ShiftDown()
   end
 
-  -- Keep the tooltip logically shown while suppressing it visually.
-  -- This preserves its current owner/content, so pressing Shift while the
-  -- mouse is already over a target reveals the existing tooltip immediately.
-  --
-  -- Alpha is forced before and after the native Show call so there is no
-  -- rendered-frame flash even if Show internally resets alpha.
+  local function ForceState()
+    originalSetAlpha(GameTooltip, ShouldHide() and 0 or 1)
+  end
+
+  -- Clamp every Lua-side alpha change while the combat guard is active.
+  -- Tooltip fade/layout code may try to restore alpha while repeatedly
+  -- mousing over a unit; it can no longer make the tooltip visible until
+  -- Shift is held.
+  GameTooltip.SetAlpha = function(self, alpha)
+    if self == GameTooltip and ShouldHide() then
+      alpha = 0
+    end
+    return originalSetAlpha(self, alpha)
+  end
+
+  -- Keep the tooltip logically shown (alpha 0) so pressing Shift while the
+  -- mouse is already over a target reveals the existing content immediately.
+  -- Alpha is enforced both before and after Show to prevent a one-frame flash.
   GameTooltip.Show = function(self)
-    if InCombat() and not ShiftDown() then
-      self:SetAlpha(0)
-      local result = originalShow(self)
-      self:SetAlpha(0)
-      return result
+    if ShouldHide() then
+      originalSetAlpha(self, 0)
     end
 
-    self:SetAlpha(1)
-    return originalShow(self)
+    local result = originalShow(self)
+
+    if self == GameTooltip then
+      originalSetAlpha(self, ShouldHide() and 0 or 1)
+    end
+
+    return result
+  end
+
+  -- SetOwner and SetUnit are the two paths used by unit mouseover tooltips.
+  -- Some Vanilla/Turtle UI code can reset tooltip visual state from these
+  -- calls, so enforce the combat state immediately after them as well.
+  GameTooltip.SetOwner = function(self, owner, anchor, x, y)
+    local r1, r2, r3, r4 = originalSetOwner(self, owner, anchor, x, y)
+    if self == GameTooltip and ShouldHide() then
+      originalSetAlpha(self, 0)
+    end
+    return r1, r2, r3, r4
+  end
+
+  GameTooltip.SetUnit = function(self, unit)
+    local r1, r2, r3, r4 = originalSetUnit(self, unit)
+    if self == GameTooltip and ShouldHide() then
+      originalSetAlpha(self, 0)
+    end
+    return r1, r2, r3, r4
   end
 
   local events = CreateFrame("Frame")
@@ -76,31 +105,22 @@ module.enable = function(self)
       combat = UnitAffectingCombat("player") and true or false
     end
 
-    Apply()
+    ForceState()
   end)
 
-  -- Some tooltip code paths can change alpha after Show. Reassert only while
-  -- the tooltip itself is visible; there is no separate permanent polling
-  -- frame in ClassicAPI environments.
-  local oldOnUpdate = GameTooltip:GetScript("OnUpdate")
-  GameTooltip:SetScript("OnUpdate", function()
-    if oldOnUpdate then oldOnUpdate() end
-    Apply()
-  end)
-
-  -- Legacy fallback: ClassicAPI normally gives MODIFIER_STATE_CHANGED, but
-  -- older environments still need a light modifier refresh while in combat.
+  -- ClassicAPI normally supplies MODIFIER_STATE_CHANGED. The fallback is only
+  -- needed for old environments and only while the tooltip is actually shown.
   if not API.modifierstate then
     events.elapsed = 0
     events:SetScript("OnUpdate", function()
-      if not InCombat() or not GameTooltip:IsShown() then return end
+      if not GameTooltip:IsShown() then return end
 
       this.elapsed = this.elapsed + (arg1 or 0)
       if this.elapsed < .05 then return end
       this.elapsed = 0
-      Apply()
+      ForceState()
     end)
   end
 
-  Apply()
+  ForceState()
 end
