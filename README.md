@@ -1,41 +1,61 @@
 # 🧩 ShaguTweaks Extras — ClassicAPI
 
-A complementary fork of **ShaguTweaks-extras** intended to be used with
-[Dusk-92/ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI).
+A complementary fork of [ShaguTweaks-extras](https://github.com/paokkerkir/ShaguTweaks-extras) for **ShaguTweaks-ClassicAPI** and **Turtle WoW-like servers**.
 
-The goal is to keep the useful Extras modules while removing functionality that
-is already integrated into the main ShaguTweaks-ClassicAPI fork, hardening
-legacy hooks, and using the shared `ShaguTweaks.API` ClassicAPI bridge where it
-actually improves reliability.
+Focused on **stability, compatibility and performance** while keeping the original ShaguTweaks Extras experience.
 
-## Requirements
+> This fork is designed to be used with [ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI).
 
-- **ShaguTweaks-ClassicAPI** — required
-- **ClassicAPI** — required indirectly by ShaguTweaks-ClassicAPI
-- **SuperWoW** — optional, as in the main fork
+## 🔌 Requirements
 
-## Installation
+- **[ShaguTweaks-ClassicAPI](https://github.com/Dusk-92/ShaguTweaks-ClassicAPI) — required**
+- **[ClassicAPI](https://github.com/brues-code/ClassicAPI) — required through ShaguTweaks-ClassicAPI**
+- **[SuperWoW](https://github.com/balakethelock/SuperWoW) — optional / recommended**
 
-1. Install **ShaguTweaks-ClassicAPI** and rename its folder to `ShaguTweaks`.
-2. Download this repository.
-3. Rename this addon folder to **`ShaguTweaks-extras`**.
-4. Copy it to `World of Warcraft\Interface\AddOns\ShaguTweaks-extras`.
-5. Restart the game.
+ClassicAPI is used through the shared `ShaguTweaks.API` compatibility layer where it provides a real benefit. Native Vanilla APIs are kept where ClassicAPI is not needed.
 
-The `ShaguTweaks-extras` folder name is kept for compatibility with bundled
-texture paths and the original addon layout.
+## 📦 Installation
 
-## Removed duplicates
+1. Install **ClassicAPI**.
+2. Install **ShaguTweaks-ClassicAPI** and rename its folder to `ShaguTweaks`.
+3. Optionally install **SuperWoW**.
+4. Rename this addon folder to `ShaguTweaks-extras`.
+5. Copy it to `World of Warcraft\Interface\AddOns\ShaguTweaks-extras`.
+6. Restart the game.
 
-These modules are intentionally not shipped here because equivalent/improved
-versions already exist in ShaguTweaks-ClassicAPI:
+Settings: **Esc → Advanced Options**.
 
-- **Chat History** → integrated into **Chat Tweaks**
-- **Show Energy Ticks** → integrated as **Unit Frame Energy & Mana Tick**
+> The `ShaguTweaks-extras` folder name must be kept for compatibility with bundled texture paths.
 
-## Included modules
+## ✨ Main changes
+
+- ClassicAPI compatibility through the shared `ShaguTweaks.API` layer.
+- Removed modules already integrated into ShaguTweaks-ClassicAPI.
+- Improved macro support with modern ClassicAPI-backed commands.
+- Better macro icon and `#showtooltip` handling.
+- Safer hooks and fewer destructive global overrides.
+- Reduced unnecessary per-frame work and repeated UI scans.
+- Improved raid-frame initialization and shared periodic updates.
+- Better Turtle WoW-like server compatibility for items, auras and UI behavior.
+- Various stability fixes across legacy ShaguTweaks Extras modules.
+
+## 🔷 Mods using ClassicAPI directly
+
+- Bag Item Click
+- Bag Search Bar
+- Macro Icons
+- Macro Tweaks
+- Raid Frames
+- Show Dispel Indicators
+- Show Bags
+- Show Micro Menu
+
+Other modules remain on native Vanilla APIs where ClassicAPI does not provide a meaningful advantage.
+
+## ⚙️ Modules
 
 ### Action Bar
+
 - Center Vertical Actionbar
 - Dragonflight Gryphons
 - Floating Actionbar
@@ -44,21 +64,31 @@ versions already exist in ShaguTweaks-ClassicAPI:
 - Show Micro Menu
 
 ### Chat
+
 - Chat Timestamps
 - Center Text Input Box
 - Enable Text Shadow
 
-### General
+### Bags & World Map
+
 - Bag Item Click
 - Bag Search Bar
 - Reveal World Map
 
 ### Macro
+
 - Macro Icons
 - Macro Tweaks
-  - modern ClassicAPI aliases: `/startattack`, `/stopattack`, `/focus`, `/clearfocus`
 
-### Raid
+Macro Tweaks adds convenient ClassicAPI-backed aliases:
+
+- `/startattack`
+- `/stopattack`
+- `/focus`
+- `/clearfocus`
+
+### Raid Frames
+
 - Enable Raid Frames
 - Hide Party Frames
 - Show Aggro Indicators
@@ -69,21 +99,26 @@ versions already exist in ShaguTweaks-ClassicAPI:
 - Use As Party Frames
 - Use Compact Layout
 
-## Compatibility approach
+## 🧹 Removed duplicates
 
-ClassicAPI is consumed through the shared `ShaguTweaks.API` capability layer.
-Modules that do not benefit from ClassicAPI are deliberately left on native
-Vanilla UI APIs instead of adding unnecessary abstraction.
+The following original Extras modules are not included because improved versions already exist in ShaguTweaks-ClassicAPI:
 
-Legacy global replacements are reduced wherever the feature can be implemented
-with the safer ShaguTweaks hook helpers.
+- **Chat History** → integrated into **Chat Tweaks**
+- **Show Energy Ticks** → integrated as **Energy & Mana Tick**
 
-## Credits
+## 🔧 Compatibility
+
+- ShaguTweaks-ClassicAPI integration
+- ClassicAPI integration
+- Turtle WoW-like server compatibility
+- SuperWoW compatibility
+
+## 🙏 Credits
 
 Original addon and modules by **Shagu**.
 
-Additional maintenance and Turtle WoW 1.18.1 work by **paokkerkir**.
+Additional maintenance and Turtle WoW work by **paokkerkir**.
 
-ClassicAPI fork maintenance and compatibility work by **Dusk-92**.
+ClassicAPI compatibility fork maintained by **Dusk-92**.
 
-Released under the original MIT license.
+Released under the original **MIT License**.
