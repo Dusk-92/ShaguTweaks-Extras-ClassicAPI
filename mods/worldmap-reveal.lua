@@ -7,6 +7,7 @@ local module = ShaguTweaks:register({
   title = T["Reveal World Map"],
   description = T["Reveals unexplored world map areas and shows exploration hints."],
   expansions = { ["vanilla"] = true, ["tbc"] = false },
+  category = T["World Map"],
   maintainer = "@shagu (GitHub)",
   enabled = true,
   config = {

@@ -7,6 +7,7 @@ local module = ShaguTweaks:register({
   title = T["Bag Item Click"],
   description = T["Send items to trade window or auction house search via right click."],
   expansions = { ["vanilla"] = true, ["tbc"] = nil },
+  category = T["Bags & Inventory"],
   maintainer = "@shagu (GitHub)",
   enabled = true,
 })

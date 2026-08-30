@@ -39,12 +39,19 @@ Settings: **Esc → Advanced Options**.
 - Reagent Counter now uses ClassicAPI spell reagent and item count data instead of tooltip scanning.
 - Reveal World Map now uses live ClassicAPI map overlay data instead of bundled static map tables.
 - Better Turtle WoW-like server compatibility for items, auras and UI behavior.
+- Added Auction Alt-Buy and Buy Em All as optional merchant and auction conveniences.
+- Added modifier-aware Key-Down Casting with an independent Alt Self-Cast option.
+- Added Metric Range for metre labels in range tooltips without changing numeric values.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
 ## 🔷 Mods using ClassicAPI integration
 
+- Auction Alt-Buy
 - Bag Item Click
 - Bag Search Bar
+- Buy Em All
+- Key-Down Casting
+- Alt Self-Cast
 - Macro Icons
 - Macro Tweaks
 - Raid Frames
@@ -66,18 +73,32 @@ Other modules can also benefit indirectly from ClassicAPI through shared ShaguTw
 - Reagent Counter
 - Show Bags
 - Show Micro Menu
+- Key-Down Casting
+- Alt Self-Cast
+
+### Bags & Inventory
+
+- Bag Item Click
+- Bag Search Bar
+
+### Merchant & Auction
+
+- Auction Alt-Buy
+- Buy Em All
+
+### Tooltip & Items
+
+- Metric Range
+
+### World Map
+
+- Reveal World Map
 
 ### Chat
 
 - Chat Timestamps
 - Center Text Input Box
 - Enable Text Shadow
-
-### Bags & World Map
-
-- Bag Item Click
-- Bag Search Bar
-- Reveal World Map
 
 ### Macro
 

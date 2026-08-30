@@ -18,16 +18,32 @@ locales\translations_zhTW.lua
 # core
 main.lua
 
-# general
-mods\macro-icons.lua
-mods\macro-tweaks.lua
+# action bar
 mods\actionbar-df-gryphon.lua
 mods\actionbar-right-center.lua
 mods\actionbar-reagents.lua
 mods\actionbar-float.lua
+mods\classic-snowfall.lua
+mods\reduced-actionbar-bags.lua
+mods\reduced-actionbar-micromenu.lua
+
+# bags & inventory
 mods\bag-item-click.lua
 mods\bag-search.lua
+
+# merchant & auction
+mods\auction-alt-buy.lua
+mods\buy-em-all.lua
+
+# tooltip & items
+mods\metric-range.lua
+
+# world map
 mods\worldmap-reveal.lua
+
+# macro
+mods\macro-icons.lua
+mods\macro-tweaks.lua
 
 # chat
 mods\chat-input-center.lua
@@ -44,7 +60,3 @@ mods\raid-aggro-indicator.lua
 mods\raid-healing-predictions.lua
 mods\raid-compact-layout.lua
 mods\raid-hide-party.lua
-
-# reduced actionbar size
-mods\reduced-actionbar-bags.lua
-mods\reduced-actionbar-micromenu.lua
