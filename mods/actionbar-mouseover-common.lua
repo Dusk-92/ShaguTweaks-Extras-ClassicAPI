@@ -14,8 +14,9 @@ if not ShaguTweaks.CreateMouseoverActionBar then
     controller.bar = bar
     controller.hotspot = hotspot
     controller.visibilityFlag = visibilityFlag
+    controller.enabled = false
     controller.elapsed = 0
-    controller.hideAt = 0
+    controller.idle = 0
 
     bar.ShaguTweaksMouseoverController = controller
 
@@ -24,30 +25,33 @@ if not ShaguTweaks.CreateMouseoverActionBar then
     hotspot:SetAllPoints(bar)
     hotspot:SetFrameStrata("DIALOG")
     hotspot:EnableMouse(false)
-    hotspot:Show()
+    hotspot:Hide()
 
-    local function IsEnabled()
+    local function ReadEnabled()
       return _G[visibilityFlag] and true or false
     end
 
     local function StopWatching()
       controller:SetScript("OnUpdate", nil)
       controller.elapsed = 0
+      controller.idle = 0
     end
 
     local function StartWatching()
-      if not IsEnabled() or not bar:IsShown() then return end
+      if not controller.enabled or not bar:IsShown() then return end
 
       hotspot:EnableMouse(false)
-      controller.hideAt = GetTime() + 2
       controller.elapsed = 0
+      controller.idle = 0
 
       controller:SetScript("OnUpdate", function()
         this.elapsed = this.elapsed + (arg1 or 0)
         if this.elapsed < .10 then return end
+
+        local step = this.elapsed
         this.elapsed = 0
 
-        if not IsEnabled() then
+        if not this.enabled then
           StopWatching()
           hotspot:EnableMouse(false)
           hotspot:Hide()
@@ -62,11 +66,12 @@ if not ShaguTweaks.CreateMouseoverActionBar then
         end
 
         if MouseIsOver(bar) then
-          this.hideAt = GetTime() + 2
+          this.idle = 0
           return
         end
 
-        if GetTime() >= this.hideAt then
+        this.idle = this.idle + step
+        if this.idle >= 2 then
           StopWatching()
           bar:Hide()
         end
@@ -74,7 +79,9 @@ if not ShaguTweaks.CreateMouseoverActionBar then
     end
 
     local function Sync()
-      if not IsEnabled() then
+      controller.enabled = ReadEnabled()
+
+      if not controller.enabled then
         StopWatching()
         hotspot:EnableMouse(false)
         hotspot:Hide()
@@ -91,25 +98,29 @@ if not ShaguTweaks.CreateMouseoverActionBar then
     end
 
     hotspot:SetScript("OnEnter", function()
-      if not IsEnabled() then return end
+      if not controller.enabled then return end
+
       hotspot:EnableMouse(false)
       bar:Show()
-      StartWatching()
+      -- The bar's OnShow script starts the watcher. Avoid a second redundant
+      -- StartWatching() call here.
     end)
 
-    -- Keep the helper in sync when the default UI or another addon changes
-    -- the bar visibility. Existing scripts are preserved.
+    -- Keep existing scripts intact while observing native/UI-addon visibility
+    -- changes. These wrappers are installed once per bar.
     local oldOnShow = bar:GetScript("OnShow")
     bar:SetScript("OnShow", function()
       if oldOnShow then oldOnShow() end
-      if IsEnabled() then StartWatching() end
+      if controller.enabled then StartWatching() end
     end)
 
     local oldOnHide = bar:GetScript("OnHide")
     bar:SetScript("OnHide", function()
       if oldOnHide then oldOnHide() end
+
       StopWatching()
-      if IsEnabled() then
+
+      if controller.enabled then
         hotspot:Show()
         hotspot:EnableMouse(true)
       else
