@@ -46,7 +46,6 @@ mods\hide-combat-tooltip.lua
 
 # unit frames
 mods\unitframes-abbrev-names.lua
-mods\move-unitframes-extended.lua
 
 # world map
 mods\worldmap-reveal.lua
