@@ -43,8 +43,8 @@ Settings: **Esc → Advanced Options**.
 - Buy Em All uses ClassicAPI merchant, item count and bag-family data, including specialty bags.
 - Added modifier-aware Key-Down Casting with Shift/Ctrl/Alt binding support and an independent Alt Self-Cast option.
 - Added Metric Range for metre labels in range tooltips without changing numeric values.
-- Added optimized modules adapted from TokensWorth/ShaguTweaks-mods: Mouseover Right bars, Hide Macro Text, Unit Frame Abbreviated Names, Movable Unit Frames Extended, Cursor Tooltip and Hide Combat Tooltip.
-- Movable Unit Frames Extended and Hide Combat Tooltip use ClassicAPI modifier-state events instead of permanent per-frame modifier polling.
+- Added optimized modules adapted from TokensWorth/ShaguTweaks-mods: Mouseover Right bars, Hide Macro Text, Unit Frame Abbreviated Names, Cursor Tooltip and Hide Combat Tooltip.
+- Hide Combat Tooltip uses ClassicAPI modifier-state events instead of permanent per-frame modifier polling.
 - Various stability fixes across legacy ShaguTweaks Extras modules.
 
 ## 🔷 Mods using ClassicAPI integration
@@ -57,7 +57,6 @@ Settings: **Esc → Advanced Options**.
 - Alt Self-Cast
 - Macro Icons
 - Macro Tweaks
-- Movable Unit Frames Extended
 - Raid Frames
 - Reagent Counter
 - Reveal World Map
@@ -104,7 +103,6 @@ Other modules can also benefit indirectly from ClassicAPI through shared ShaguTw
 ### Unit Frames
 
 - Unit Frame Abbreviated Names
-- Movable Unit Frames Extended
 
 ### World Map
 
@@ -147,6 +145,7 @@ The following modules are not included because improved versions already exist i
 - **Chat History** → integrated into **Chat Tweaks**
 - **Show Energy Ticks** → integrated as **Energy & Mana Tick**
 - **Improved Roll Frames** → already integrated and optimized in **ShaguTweaks-ClassicAPI**
+- **Movable Unit Frames Extended** → integrated into **Movable Unit Frames** in ShaguTweaks-ClassicAPI
 
 ## 🔧 Compatibility
 
