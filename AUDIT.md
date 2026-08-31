@@ -885,3 +885,17 @@ Runtime validation is still required before merge, especially for:
 - Ctrl+Shift without dragging anything, followed by relog/reload
 - dragging each supported frame individually, followed by relog/reload
 - default party/buff/minimap layout remaining unchanged for frames never moved
+
+
+## Post-merge consolidation — Movable Unit Frames
+
+`Movable Unit Frames Extended` is no longer shipped by Extras.
+
+Its Party, Minimap, Buff, Debuff and Weapon Buff movers were consolidated into
+the main ShaguTweaks-ClassicAPI `Movable Unit Frames` module. This removes the
+second Ctrl+Shift controller and the duplicate alignment grid that appeared
+when both modules were enabled.
+
+The main module also migrates saved positions from the former
+`ShaguTweaks_config["MoveUnitframesExtended"]` table into its unified position
+store without deleting the legacy data.
