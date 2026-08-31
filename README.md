@@ -154,6 +154,19 @@ The following modules are not included because improved versions already exist i
 - Turtle WoW-like server integration
 - SuperWoW integration
 
+## 📜 Project identity & licensing
+
+This is an independent community project. Compatibility with **World of Warcraft**, **Turtle WoW-like environments**, **ShaguTweaks-ClassicAPI**, **ClassicAPI**, **SuperWoW**, or other referenced projects does not imply affiliation, endorsement, sponsorship, or ownership by their respective rights holders or maintainers.
+
+**World of Warcraft** and **Blizzard Entertainment** names, marks, and game assets remain the property of their respective rights holders.
+
+For detailed provenance and licensing information, see:
+
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- [PROJECT_IDENTITY.md](PROJECT_IDENTITY.md)
+- [Docs/ASSET_PROVENANCE.md](Docs/ASSET_PROVENANCE.md)
+- [LICENSES/](LICENSES/)
+
 ## 🙏 Credits
 
 Original addon and modules by **Shagu**.
