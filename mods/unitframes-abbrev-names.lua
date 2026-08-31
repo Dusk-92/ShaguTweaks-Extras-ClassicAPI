@@ -14,6 +14,7 @@ local module = ShaguTweaks:register({
 
 module.enable = function(self)
   local maxLength = 15
+  local cache = {}
 
   local function AbbrevWord(word)
     return string.sub(word, 1, 1) .. ". "
@@ -21,31 +22,57 @@ module.enable = function(self)
 
   local function GetShortName(unit)
     local name = UnitName(unit)
-    if not name then return end
-
-    if strlen(name) > maxLength then
-      name = string.gsub(name, "^(%S+) ", AbbrevWord)
+    if not name then
+      cache[unit] = nil
+      return
     end
 
-    if strlen(name) > maxLength then
-      name = string.gsub(name, "(%S+) ", AbbrevWord)
+    local cached = cache[unit]
+    if cached and cached.raw == name then
+      return cached.short
     end
 
-    return name
+    local short = name
+
+    if strlen(short) > maxLength then
+      short = string.gsub(short, "^(%S+) ", AbbrevWord)
+    end
+
+    if strlen(short) > maxLength then
+      short = string.gsub(short, "(%S+) ", AbbrevWord)
+    end
+
+    cache[unit] = {
+      raw = name,
+      short = short,
+    }
+
+    return short
   end
 
   local function GetNameText(frame)
     if not frame then return end
     if frame.name then return frame.name end
-    if frame.GetName and frame:GetName() then
-      return _G[frame:GetName() .. "Name"]
+
+    if frame.GetName then
+      local frameName = frame:GetName()
+      if frameName then
+        return _G[frameName .. "Name"]
+      end
     end
   end
 
   local function UpdateFrame(frame, unit)
     local text = GetNameText(frame)
     local name = GetShortName(unit)
-    if text and name then text:SetText(name) end
+    if not text or not name then return end
+
+    -- Avoid forcing a FontString update when the displayed value is already
+    -- correct. This matters most for the legacy 250 ms target-of-target
+    -- fallback.
+    if not text.GetText or text:GetText() ~= name then
+      text:SetText(name)
+    end
   end
 
   local function UpdateTarget()
@@ -96,11 +123,15 @@ module.enable = function(self)
   if not hasUnitTarget then
     local fallback = CreateFrame("Frame")
     fallback.elapsed = 0
+
     fallback:SetScript("OnUpdate", function()
       this.elapsed = this.elapsed + (arg1 or 0)
       if this.elapsed < .25 then return end
       this.elapsed = 0
-      if UnitName("target") then UpdateTargetTarget() end
+
+      if UnitName("targettarget") then
+        UpdateTargetTarget()
+      end
     end)
   end
 
