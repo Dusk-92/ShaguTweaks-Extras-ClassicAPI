@@ -58,8 +58,26 @@ module.enable = function(self)
     background:SetVertexColor(0, 0, 0, .5)
   end
 
+  -- center the experience bar when Floating Actionbar is used on its own.
+  -- Reduced Actionbar applies its own matching offset, so avoid shifting it twice.
+  local function UpdateExperiencePosition()
+    local reducedEnabled = ShaguTweaks_config
+      and ShaguTweaks_config[T["Reduced Actionbar Size"]] == 1
+
+    if reducedEnabled then return end
+
+    MainMenuExpBar:ClearAllPoints()
+    if ReputationWatchBar:IsShown() then
+      MainMenuExpBar:SetPoint("TOP", MainMenuBar, "TOP", 0, 0)
+    else
+      MainMenuExpBar:SetPoint("TOP", MainMenuBar, "TOP", 0, 3)
+    end
+  end
+
   -- keep the custom reputation position without replacing Blizzard's updater
   local function UpdateReputationPosition()
+    UpdateExperiencePosition()
+
     ReputationWatchBar:ClearAllPoints()
     if MainMenuExpBar:IsShown() then
       ReputationWatchBar:SetPoint("BOTTOM", MainMenuBar, "TOP", 0, -7)
