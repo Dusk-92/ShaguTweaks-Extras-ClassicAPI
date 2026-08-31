@@ -26,6 +26,10 @@ mods\actionbar-float.lua
 mods\classic-snowfall.lua
 mods\reduced-actionbar-bags.lua
 mods\reduced-actionbar-micromenu.lua
+mods\actionbar-mouseover-common.lua
+mods\actionbar-mouseover-bar-right.lua
+mods\actionbar-mouseover-bar-right2.lua
+mods\actionbar-hide-macro.lua
 
 # bags & inventory
 mods\bag-item-click.lua
@@ -37,6 +41,12 @@ mods\buy-em-all.lua
 
 # tooltip & items
 mods\metric-range.lua
+mods\cursor-tooltip.lua
+mods\hide-combat-tooltip.lua
+
+# unit frames
+mods\unitframes-abbrev-names.lua
+mods\move-unitframes-extended.lua
 
 # world map
 mods\worldmap-reveal.lua
