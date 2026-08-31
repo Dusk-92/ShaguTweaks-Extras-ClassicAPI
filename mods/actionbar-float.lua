@@ -87,6 +87,11 @@ module.enable = function(self)
   end
 
   hooksecurefunc("ReputationWatchBar_Update", UpdateReputationPosition)
+
+  -- Blizzard can restore the default XP bar anchor after login/reloads and
+  -- actionbar visibility changes, so re-apply the fixed floating offset.
+  hooksecurefunc("UIParent_ManageFramePositions", UpdateExperiencePosition)
+
   UpdateReputationPosition()
 
   -- hide max level top frame
