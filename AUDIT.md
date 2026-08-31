@@ -788,3 +788,100 @@ No ClassicAPI-specific replacement is useful here. `GetCursorPosition`,
 tooltip ownership and frame anchoring are native UI operations. The optimized
 design therefore keeps the unavoidable cursor-following `OnUpdate`, but only
 for the time where that work is actually needed.
+
+
+## Remaining TokensWorth modules — focused audit
+
+The remaining requested TokensWorth-derived modules were reviewed against their
+upstream implementations and the current ClassicAPI/ShaguTweaks architecture.
+
+### Mouseover Right / Mouseover Right 2 — optimized
+
+Both options continue to use one shared helper instead of duplicating the
+upstream implementation.
+
+Upstream creates one mouse-catching overlay for each of the 12 buttons plus an
+additional bar overlay for each actionbar. The ClassicAPI test version keeps one
+hotspot and one controller per bar.
+
+The focused audit additionally:
+
+- caches the native actionbar visibility flag from `CVAR_UPDATE` /
+  `PLAYER_ENTERING_WORLD` instead of looking it up on every watcher tick
+- replaces repeated `GetTime()` deadline checks with a simple accumulated
+  two-second idle timer
+- removes a duplicate watcher restart when the hidden bar is revealed
+- leaves the watcher disabled while the bar is hidden
+- preserves any pre-existing bar `OnShow` / `OnHide` scripts
+
+The remaining 100 ms watcher only exists while the relevant actionbar is
+actually visible and waiting to auto-hide. No ClassicAPI API can replace the
+required mouse-over state check.
+
+### Hide Macro Text — retained as-is
+
+No hot-path issue was found.
+
+The module performs a single pass over the native action-button FontStrings and
+sets their alpha to zero. It installs no event handlers, no hooks and no
+`OnUpdate`.
+
+Using ClassicAPI would add abstraction without benefit because this is a
+one-time FrameXML presentation change. The current implementation is already
+effectively zero-cost after enable.
+
+### Unit Frame Abbreviated Names — further optimized
+
+The upstream module recalculates target-of-target text on every rendered frame.
+
+The ClassicAPI version already prefers validated `UNIT_TARGET` and
+`UNIT_NAME_UPDATE` events, with a 250 ms fallback only where `UNIT_TARGET`
+is unavailable.
+
+The focused audit additionally:
+
+- caches the raw unit name and abbreviated result
+- skips repeated abbreviation/string work while the underlying unit name is
+  unchanged
+- skips `FontString:SetText` when the displayed text is already correct
+- limits the legacy fallback to cases where `targettarget` actually exists
+
+### Movable Unit Frames Extended — hardened
+
+The upstream module polls Ctrl+Shift every rendered frame. The ClassicAPI
+version uses `MODIFIER_STATE_CHANGED` plus the shared modifier helpers, with a
+100 ms fallback only for environments without ClassicAPI modifier events.
+
+The focused audit found a correctness issue in the first test conversion:
+merely pressing and releasing Ctrl+Shift saved absolute positions for every
+managed frame, even if the user had not dragged them. On later logins this
+could turn untouched Blizzard-managed frames into explicit absolute-position
+frames.
+
+The hardened version now:
+
+- saves a position only after that specific frame was actually dragged
+- preserves and restores the original drag scripts
+- preserves and restores the original mouse-enabled state
+- preserves the original movable state
+- restores the original user-placed state for untouched frames
+- only marks a frame user-placed when a real drag starts
+- keeps the grid lazily created on first unlock
+- retains the requested Turtle WoW `BuffButton32` debuff anchor
+
+### Current status
+
+The focused static audit found no additional change worth making to
+`actionbar-mouseover-bar-right.lua`,
+`actionbar-mouseover-bar-right2.lua` or `actionbar-hide-macro.lua` beyond
+their shared/helper behavior.
+
+Runtime validation is still required before merge, especially for:
+
+- enabling/disabling the two native right actionbars while mouseover hiding is
+  active
+- repeated reveal/hide cycles with action buttons clicked normally
+- abbreviated target-of-target names during rapid target switching
+- Ctrl+Shift without dragging anything, followed by relog/reload
+- dragging each supported frame individually, followed by relog/reload
+- default party/buff/minimap layout remaining unchanged for frames never moved
