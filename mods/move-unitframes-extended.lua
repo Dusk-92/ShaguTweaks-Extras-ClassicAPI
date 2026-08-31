@@ -38,38 +38,41 @@ module.enable = function(self)
     local handle = _G[target.name]
     if not handle then return end
 
-    local move = target.moveParent and handle:GetParent() or handle
-    if not move then return end
+    local moveFrame = target.moveParent and handle:GetParent() or handle
+    if not moveFrame then return end
 
-    return handle, move
+    return handle, moveFrame
   end
 
-  local function PositionKey(target, move)
-    return (move.GetName and move:GetName()) or target.name
+  local function PositionKey(target, moveFrame)
+    return (moveFrame.GetName and moveFrame:GetName()) or target.name
   end
 
-  local function SavePosition(target)
-    local handle, move = Resolve(target)
-    if not handle or not move then return end
+  local function SavePosition(target, moveFrame)
+    if not moveFrame then
+      local _, resolved = Resolve(target)
+      moveFrame = resolved
+    end
+    if not moveFrame then return end
 
-    local left = move:GetLeft()
-    local top = move:GetTop()
+    local left = moveFrame:GetLeft()
+    local top = moveFrame:GetTop()
     if not left or not top then return end
 
-    movedb[PositionKey(target, move)] = { left, top }
+    movedb[PositionKey(target, moveFrame)] = { left, top }
   end
 
   local function RestorePosition(target)
-    local handle, move = Resolve(target)
-    if not handle or not move then return end
+    local _, moveFrame = Resolve(target)
+    if not moveFrame then return end
 
-    local pos = movedb[PositionKey(target, move)]
+    local pos = movedb[PositionKey(target, moveFrame)]
     if not pos or not pos[1] or not pos[2] then return end
 
-    move:SetMovable(true)
-    if move.SetUserPlaced then move:SetUserPlaced(true) end
-    move:ClearAllPoints()
-    move:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", pos[1], pos[2])
+    moveFrame:SetMovable(true)
+    if moveFrame.SetUserPlaced then moveFrame:SetUserPlaced(true) end
+    moveFrame:ClearAllPoints()
+    moveFrame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", pos[1], pos[2])
   end
 
   local grid
@@ -100,8 +103,9 @@ module.enable = function(self)
     end
 
     local rows = floor(height / hStep)
+    local middle = floor(rows / 2)
+
     for i = 1, rows do
-      local middle = floor(rows / 2)
       local line = grid:CreateTexture(nil, i == middle and "BORDER" or "BACKGROUND")
       if i == middle then
         line:SetTexture(.8, .6, 0)
@@ -116,34 +120,58 @@ module.enable = function(self)
   end
 
   local function UnlockTarget(index, target)
-    local handle, move = Resolve(target)
-    if not handle or not move then return end
+    local handle, moveFrame = Resolve(target)
+    if not handle or not moveFrame then return end
 
     states[index] = states[index] or {}
     local state = states[index]
     if state.active then return end
 
     state.active = true
+    state.dragged = false
     state.handle = handle
-    state.move = move
+    state.moveFrame = moveFrame
     state.onDragStart = handle:GetScript("OnDragStart")
     state.onDragStop = handle:GetScript("OnDragStop")
+
     if handle.IsMouseEnabled then
       state.mouseEnabled = handle:IsMouseEnabled() and true or false
+    else
+      state.mouseEnabled = nil
     end
 
-    move:SetMovable(true)
-    if move.SetUserPlaced then move:SetUserPlaced(true) end
+    if moveFrame.IsMovable then
+      state.movable = moveFrame:IsMovable() and true or false
+    else
+      state.movable = nil
+    end
 
+    if moveFrame.IsUserPlaced then
+      state.userPlaced = moveFrame:IsUserPlaced() and true or false
+    else
+      state.userPlaced = nil
+    end
+
+    moveFrame:SetMovable(true)
     handle:EnableMouse(true)
     handle:RegisterForDrag("LeftButton")
 
     handle:SetScript("OnDragStart", function()
-      move:StartMoving()
+      state.dragged = true
+
+      if moveFrame.SetUserPlaced then
+        moveFrame:SetUserPlaced(true)
+      end
+
+      moveFrame:StartMoving()
     end)
 
     handle:SetScript("OnDragStop", function()
-      move:StopMovingOrSizing()
+      moveFrame:StopMovingOrSizing()
+
+      if state.dragged then
+        SavePosition(target, moveFrame)
+      end
     end)
   end
 
@@ -152,14 +180,34 @@ module.enable = function(self)
     if not state or not state.active then return end
 
     local handle = state.handle
-    local move = state.move
+    local moveFrame = state.moveFrame
 
-    if move then move:StopMovingOrSizing() end
-    SavePosition(target)
+    if moveFrame then
+      moveFrame:StopMovingOrSizing()
+
+      -- Only persist an anchor if the user actually dragged this frame. The
+      -- previous test version saved every frame whenever Ctrl+Shift was
+      -- released, which could turn untouched default-managed UI elements into
+      -- permanently absolute-positioned frames.
+      if state.dragged then
+        SavePosition(target, moveFrame)
+      end
+
+      if state.movable ~= nil then
+        moveFrame:SetMovable(state.movable)
+      end
+
+      if not state.dragged
+        and state.userPlaced ~= nil
+        and moveFrame.SetUserPlaced then
+        moveFrame:SetUserPlaced(state.userPlaced)
+      end
+    end
 
     if handle then
       handle:SetScript("OnDragStart", state.onDragStart)
       handle:SetScript("OnDragStop", state.onDragStop)
+
       if state.mouseEnabled ~= nil then
         handle:EnableMouse(state.mouseEnabled)
       end
@@ -191,9 +239,7 @@ module.enable = function(self)
   end
 
   local function UpdateLockState()
-    local shouldUnlock = API.IsShiftKeyDown() and API.IsControlKeyDown()
-
-    if shouldUnlock then
+    if API.IsShiftKeyDown() and API.IsControlKeyDown() then
       UnlockAll()
     else
       LockAll()
