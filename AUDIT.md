@@ -749,3 +749,42 @@ Before merging this branch, test:
 - Lua errors and visible FPS regressions
 
 Static code review is complete; this branch remains a runtime test candidate.
+
+
+### Cursor Tooltip — focused audit / optimization
+
+A focused audit compared the test implementation with the TokensWorth upstream
+module.
+
+Findings:
+
+- the feature genuinely needs frame-by-frame cursor coordinates while the
+  tooltip is visible; there is no ClassicAPI event that can replace pointer
+  tracking
+- the previous test implementation showed its cursor tracker as soon as
+  `GameTooltip_SetDefaultAnchor` ran, even though default anchoring normally
+  happens before `GameTooltip:Show()`
+- `ClearAllPoints()` on the cursor tracker every rendered frame was
+  unnecessary
+- moving the tracker while the mouse coordinates were unchanged caused
+  avoidable layout work
+- replacing `GameTooltip_SetDefaultAnchor` for every possible tooltip caller
+  could affect non-`GameTooltip` frames unnecessarily
+
+The optimized test version now:
+
+- starts its `OnUpdate` work only while the actual `GameTooltip` is shown
+- performs one immediate cursor-position update before Show to avoid a first
+  frame jump
+- skips `SetPoint` when cursor coordinates and UI scale have not changed
+- reuses the same CENTER anchor without per-frame `ClearAllPoints`
+- keeps the original default-anchor helper for non-`GameTooltip` callers
+- keeps `SetClampedToScreen(true)` so the cursor tooltip remains inside the
+  visible UI area
+- retains the intentional default-anchor replacement because a post-hook alone
+  was not reliable on Vanilla/Turtle layout code
+
+No ClassicAPI-specific replacement is useful here. `GetCursorPosition`,
+tooltip ownership and frame anchoring are native UI operations. The optimized
+design therefore keeps the unavoidable cursor-following `OnUpdate`, but only
+for the time where that work is actually needed.
