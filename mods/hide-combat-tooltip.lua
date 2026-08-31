@@ -16,66 +16,103 @@ module.enable = function(self)
   ShaguTweaks.HideCombatTooltipInstalled = true
 
   local controller = CreateFrame("Frame", nil, UIParent)
-  local inCombat = false
-  local shiftDown = false
+  local inCombat = UnitAffectingCombat("player") and true or false
+  local shiftDown = API.IsShiftKeyDown() and true or false
+  local guardActive = false
   local elapsed = 0
 
   local function Apply()
-    local alpha = shiftDown and 1 or 0
+    if not inCombat then
+      if GameTooltip:GetAlpha() ~= 1 then
+        GameTooltip:SetAlpha(1)
+      end
+      return
+    end
 
+    local alpha = shiftDown and 1 or 0
     if GameTooltip:GetAlpha() ~= alpha then
       GameTooltip:SetAlpha(alpha)
     end
   end
 
+  local function GuardTick()
+    elapsed = elapsed + (arg1 or 0)
+    if elapsed < .05 then return end
+    elapsed = 0
+
+    -- ClassicAPI provides modifier events, so normal clients don't need to
+    -- query Shift here. This fallback is only for old environments.
+    if not API.modifierstate then
+      shiftDown = API.IsShiftKeyDown() and true or false
+    end
+
+    Apply()
+  end
+
+  local function StartGuard()
+    if guardActive or not inCombat or not GameTooltip:IsShown() then return end
+
+    guardActive = true
+    elapsed = 0
+    controller:SetScript("OnUpdate", GuardTick)
+  end
+
+  local function StopGuard()
+    if not guardActive then return end
+
+    guardActive = false
+    elapsed = 0
+    controller:SetScript("OnUpdate", nil)
+  end
+
   local function RefreshShift()
     shiftDown = API.IsShiftKeyDown() and true or false
 
-    if inCombat then
+    if inCombat and GameTooltip:IsShown() then
       Apply()
+      StartGuard()
     end
   end
 
-  local function StartCombatGuard()
-    if inCombat then
-      RefreshShift()
-      return
-    end
-
+  local function EnterCombat()
     inCombat = true
-    elapsed = 0
     shiftDown = API.IsShiftKeyDown() and true or false
-    Apply()
 
-    -- Vanilla/Turtle tooltip code can restore alpha internally while the
-    -- cursor moves between units. Keep a small combat-only guard for that
-    -- native behavior, but throttle it instead of running the full check on
-    -- every rendered frame like the upstream module.
-    controller:SetScript("OnUpdate", function()
-      if not GameTooltip:IsShown() then return end
-
-      elapsed = elapsed + (arg1 or 0)
-      if elapsed < .05 then return end
-      elapsed = 0
-
+    if GameTooltip:IsShown() then
       Apply()
-    end)
+      StartGuard()
+    end
   end
 
-  local function StopCombatGuard()
-    if not inCombat then
-      GameTooltip:SetAlpha(1)
-      return
-    end
-
+  local function LeaveCombat()
     inCombat = false
-    elapsed = 0
-    controller:SetScript("OnUpdate", nil)
-
-    if GameTooltip:GetAlpha() ~= 1 then
-      GameTooltip:SetAlpha(1)
-    end
+    StopGuard()
+    Apply()
   end
+
+  -- Vanilla/Turtle can restore GameTooltip alpha internally while updating a
+  -- visible unit tooltip. A purely event-driven implementation therefore does
+  -- not stay hidden reliably. The guard below exists only while BOTH combat
+  -- and an actual GameTooltip are active, and is throttled to 20 Hz instead of
+  -- running the full upstream logic every rendered frame.
+  local oldOnShow = GameTooltip:GetScript("OnShow")
+  GameTooltip:SetScript("OnShow", function()
+    if oldOnShow then oldOnShow() end
+
+    if inCombat then
+      shiftDown = API.IsShiftKeyDown() and true or false
+      Apply()
+      StartGuard()
+    else
+      Apply()
+    end
+  end)
+
+  local oldOnHide = GameTooltip:GetScript("OnHide")
+  GameTooltip:SetScript("OnHide", function()
+    if oldOnHide then oldOnHide() end
+    StopGuard()
+  end)
 
   controller:RegisterEvent("PLAYER_ENTERING_WORLD")
   controller:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -87,45 +124,23 @@ module.enable = function(self)
 
   controller:SetScript("OnEvent", function()
     if event == "PLAYER_REGEN_DISABLED" then
-      StartCombatGuard()
+      EnterCombat()
     elseif event == "PLAYER_REGEN_ENABLED" then
-      StopCombatGuard()
+      LeaveCombat()
     elseif event == "MODIFIER_STATE_CHANGED" then
       RefreshShift()
     elseif event == "PLAYER_ENTERING_WORLD" then
       if UnitAffectingCombat("player") then
-        StartCombatGuard()
+        EnterCombat()
       else
-        StopCombatGuard()
+        LeaveCombat()
       end
     end
   end)
 
-  -- Old environments without ClassicAPI's modifier-state event still need to
-  -- sample Shift while in combat. Fold that check into the same 50 ms guard
-  -- rather than creating another polling frame.
-  if not API.modifierstate then
-    local originalStartCombatGuard = StartCombatGuard
-
-    StartCombatGuard = function()
-      originalStartCombatGuard()
-
-      controller:SetScript("OnUpdate", function()
-        if not GameTooltip:IsShown() then return end
-
-        elapsed = elapsed + (arg1 or 0)
-        if elapsed < .05 then return end
-        elapsed = 0
-
-        shiftDown = API.IsShiftKeyDown() and true or false
-        Apply()
-      end)
-    end
-  end
-
-  if UnitAffectingCombat("player") then
-    StartCombatGuard()
+  if inCombat then
+    EnterCombat()
   else
-    StopCombatGuard()
+    LeaveCombat()
   end
 end
