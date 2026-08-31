@@ -10,7 +10,6 @@ The following modules in this fork contain code adapted from
 - `mods/actionbar-mouseover-bar-right2.lua`
 - `mods/actionbar-hide-macro.lua`
 - `mods/unitframes-abbrev-names.lua`
-- `mods/move-unitframes-extended.lua`
 - `mods/cursor-tooltip.lua`
 - `mods/hide-combat-tooltip.lua`
 
