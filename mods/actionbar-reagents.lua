@@ -107,4 +107,21 @@ module.enable = function(self)
     reagent_slots[slot] = reagent.itemID
     reagent_counts[reagent.itemID] = reagent_counts[reagent.itemID] or 0
   end
+
+  -- The stock UI clears the Count fontstring on non-consumable actions whenever
+  -- ActionButton_UpdateCount() runs. Re-apply our reagent value afterwards so
+  -- login/reload refreshes cannot erase it a moment later.
+  ShaguTweaks.hooksecurefunc("ActionButton_UpdateCount", function()
+    local button = this
+    if not button or not button.GetName then return end
+
+    local slot = ActionButton_GetPagedID(button)
+    local itemID = slot and reagent_slots[slot]
+    if not itemID then return end
+
+    local text = _G[button:GetName().."Count"]
+    if text then
+      text:SetText(reagent_counts[itemID] or 0)
+    end
+  end)
 end
