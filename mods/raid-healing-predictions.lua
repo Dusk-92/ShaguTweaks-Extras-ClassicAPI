@@ -11,6 +11,11 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
+  -- libpredict stays completely dormant unless this module is enabled.
+  if ShaguTweaks.libpredict and ShaguTweaks.libpredict.Enable then
+    ShaguTweaks.libpredict:Enable()
+  end
+
   ShaguTweaks.UnitFrame_NewComponent('healing predictions', {
     events = {
       'FRAME_TICK_250',
