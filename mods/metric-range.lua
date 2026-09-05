@@ -31,7 +31,15 @@ module.enable = function(self)
     local name = tooltip:GetName()
     if not name then return end
 
-    for i = 1, 30 do
+    -- GameTooltip-style frames expose NumLines() in Vanilla. Only inspect the
+    -- lines that actually exist instead of probing 30 left/right font strings
+    -- on every tooltip show. Keep the historical 30-line ceiling as fallback.
+    local lines = 30
+    if tooltip.NumLines then
+      lines = math.min(tooltip:NumLines() or 0, 30)
+    end
+
+    for i = 1, lines do
       local left = _G[name .. "TextLeft" .. i]
       if left then
         local old = left:GetText()
