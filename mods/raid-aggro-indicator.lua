@@ -1,5 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
+local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Show Aggro Indicators"],
@@ -17,48 +18,81 @@ local backdrop = {
   insets = { left = 2, right = 2, top = 2, bottom = 2 }
 }
 
--- basic unitstrings
-local unitstrings = {
-  ["pet"] = true, ["player"] = true, ["target"] = true, ["mouseover"] = true
-}
+-- Prebuild the unit/target token chains once. The old implementation rebuilt
+-- these strings while scanning every raid frame, every second.
+local observers = {}
+local function AddObserver(unit)
+  table.insert(observers, {
+    unit,
+    unit .. "target",
+    unit .. "targettarget",
+  })
+end
 
--- group and raid units
-for i=1,4 do unitstrings["party" .. i] = true end
-for i=1,4 do unitstrings["partypet" .. i] = true end
-for i=1,40 do unitstrings["raid" .. i] = true end
-for i=1,40 do unitstrings["raidpet" .. i] = true end
+AddObserver("pet")
+AddObserver("player")
+AddObserver("target")
+AddObserver("mouseover")
+for i=1,4 do AddObserver("party" .. i) end
+for i=1,4 do AddObserver("partypet" .. i) end
+for i=1,40 do AddObserver("raid" .. i) end
+for i=1,40 do AddObserver("raidpet" .. i) end
 
--- cached aggro detection function
-local aggrodata = { }
-local function UnitHasAggro(unit)
+-- Build one shared aggro snapshot per second. ClassicAPI's UnitGUID supports
+-- chained target tokens, so the same target/target-of-target heuristic can be
+-- evaluated once for all raid frames instead of rescanning every observer for
+-- each displayed unit.
+local aggrodata = {}
+local nextAggroUpdate = 0
+
+local function AddAggro(guid)
+  if not guid then return end
+  aggrodata[guid] = (aggrodata[guid] or 0) + 1
+end
+
+local function RefreshAggroData()
   local now = GetTime()
-  if aggrodata[unit] and now < aggrodata[unit].check + 1 then
-    return aggrodata[unit].state
+  if now < nextAggroUpdate then return end
+  nextAggroUpdate = now + 1
+
+  for guid in pairs(aggrodata) do
+    aggrodata[guid] = nil
   end
 
-  aggrodata[unit] = aggrodata[unit] or { }
-  aggrodata[unit].check = now
-  aggrodata[unit].state = 0
+  for _, observer in ipairs(observers) do
+    local source = observer[1]
+    local target = observer[2]
+    local targettarget = observer[3]
 
-  if UnitExists(unit) and UnitIsFriend(unit, "player") then
-    for u in pairs(unitstrings) do
-      local t = u .. "target"
-      local tt = t .. "target"
+    local guid = API.UnitGUID(target)
+    if guid and UnitCanAttack(source, target) then
+      AddAggro(guid)
+    end
 
-      if UnitExists(t) and UnitIsUnit(t, unit) and UnitCanAttack(u, unit) then
-        aggrodata[unit].state = aggrodata[unit].state + 1
-      end
-
-      if UnitExists(tt) and UnitIsUnit(tt, unit) and UnitCanAttack(t, unit) then
-        aggrodata[unit].state = aggrodata[unit].state + 1
-      end
+    guid = API.UnitGUID(targettarget)
+    if guid and UnitCanAttack(target, targettarget) then
+      AddAggro(guid)
     end
   end
+end
 
-  return aggrodata[unit].state
+local function UnitHasAggro(unit)
+  if not UnitExists(unit) or not UnitIsFriend(unit, "player") then
+    return 0
+  end
+
+  RefreshAggroData()
+
+  local guid = API.UnitGUID(unit)
+  return guid and (aggrodata[guid] or 0) or 0
 end
 
 module.enable = function(self)
+  -- Extras is ClassicAPI-first. Without UnitGUID the optimized shared
+  -- snapshot cannot preserve unit identity safely, so do not fall back to the
+  -- old O(raid * observers) scanner.
+  if not API.unitguid then return end
+
   ShaguTweaks.UnitFrame_NewComponent('aggro indicator', {
     events = {
       'FRAME_TICK_250',
