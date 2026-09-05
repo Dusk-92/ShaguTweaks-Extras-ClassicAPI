@@ -26,6 +26,10 @@ module.enable = function(self)
   end
   if reducedEnabled ~= 1 then return end
 
+  -- Moving the bag bar is driven by ClassicAPI modifier events and native
+  -- Region:IsMouseOver state. Do not keep a permanent polling fallback here.
+  if not API.modifierstate or not API.regionmouseover then return end
+
   local frames = {
     KeyRingButton, CharacterBag3Slot, CharacterBag2Slot, CharacterBag1Slot,
     CharacterBag0Slot, MainMenuBarBackpackButton,
@@ -57,6 +61,33 @@ module.enable = function(self)
 
   bagframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
+  local function UpdateMoveMode()
+    local active = API.IsMouseOver(bagframe)
+      and API.IsShiftKeyDown()
+      and API.IsControlKeyDown()
+
+    if active then
+      if bagframe.mousedisabled then return end
+      bagframe.mousedisabled = true
+      for _, frame in ipairs(frames) do
+        frame:EnableMouse(0)
+      end
+    else
+      if not bagframe.mousedisabled then return end
+      bagframe.mousedisabled = false
+      for _, frame in ipairs(frames) do
+        frame:EnableMouse(1)
+      end
+    end
+  end
+
+  bagframe:SetScript("OnEnter", UpdateMoveMode)
+  bagframe:SetScript("OnLeave", UpdateMoveMode)
+
+  local modifier = CreateFrame("Frame", nil, bagframe)
+  modifier:RegisterEvent("MODIFIER_STATE_CHANGED")
+  modifier:SetScript("OnEvent", UpdateMoveMode)
+
   bagframe:SetScript("OnDragStart", function()
     local shift = API.IsShiftKeyDown()
     local control = API.IsControlKeyDown()
@@ -66,32 +97,6 @@ module.enable = function(self)
 
   bagframe:SetScript("OnDragStop", function()
     this:StopMovingOrSizing()
-  end)
-
-  bagframe:SetScript("OnUpdate", function()
-    this.modifierTimer = (this.modifierTimer or 0) + arg1
-    if this.modifierTimer < .05 then return end
-    this.modifierTimer = 0
-
-    local shift = API.IsShiftKeyDown()
-    local control = API.IsControlKeyDown()
-    if MouseIsOver(this) and shift and control then
-      if not this.mousedisabled then
-        -- disable mouse events on all frames
-        this.mousedisabled = true
-        for _, frame in ipairs(frames) do
-          frame:EnableMouse(0)
-        end
-      end
-    else
-      if this.mousedisabled then
-        -- enable all mouse events again
-        this.mousedisabled = false
-        for _, frame in ipairs(frames) do
-          frame:EnableMouse(1)
-        end
-      end
-    end
   end)
 
   bagframe:SetScript("OnEvent", function()
@@ -108,6 +113,14 @@ module.enable = function(self)
       frame:SetScale(.8)
       frame.Show = nil
       frame:Show()
+
+      -- Child bag buttons normally own the mouse. Re-evaluate move mode when
+      -- entering or leaving one so Ctrl+Shift already held before mouseover is
+      -- handled without polling and without replacing their tooltip scripts.
+      ShaguTweaks.HookScript(frame, "OnEnter", UpdateMoveMode)
+      ShaguTweaks.HookScript(frame, "OnLeave", UpdateMoveMode)
     end
+
+    UpdateMoveMode()
   end)
 end
