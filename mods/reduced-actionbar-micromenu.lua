@@ -26,6 +26,10 @@ module.enable = function(self)
   end
   if reducedEnabled ~= 1 then return end
 
+  -- Moving the micro menu is driven by ClassicAPI modifier events and native
+  -- Region:IsMouseOver state. Do not keep a permanent polling fallback here.
+  if not API.modifierstate or not API.regionmouseover then return end
+
   local frames = {
     CharacterMicroButton, SpellbookMicroButton, TalentMicroButton,
     QuestLogMicroButton, MainMenuMicroButton, SocialsMicroButton,
@@ -58,6 +62,33 @@ module.enable = function(self)
 
   microframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
+  local function UpdateMoveMode()
+    local active = API.IsMouseOver(microframe)
+      and API.IsShiftKeyDown()
+      and API.IsControlKeyDown()
+
+    if active then
+      if microframe.mousedisabled then return end
+      microframe.mousedisabled = true
+      for _, frame in ipairs(frames) do
+        frame:EnableMouse(0)
+      end
+    else
+      if not microframe.mousedisabled then return end
+      microframe.mousedisabled = false
+      for _, frame in ipairs(frames) do
+        frame:EnableMouse(1)
+      end
+    end
+  end
+
+  microframe:SetScript("OnEnter", UpdateMoveMode)
+  microframe:SetScript("OnLeave", UpdateMoveMode)
+
+  local modifier = CreateFrame("Frame", nil, microframe)
+  modifier:RegisterEvent("MODIFIER_STATE_CHANGED")
+  modifier:SetScript("OnEvent", UpdateMoveMode)
+
   microframe:SetScript("OnDragStart", function()
     local shift = API.IsShiftKeyDown()
     local control = API.IsControlKeyDown()
@@ -67,32 +98,6 @@ module.enable = function(self)
 
   microframe:SetScript("OnDragStop", function()
     this:StopMovingOrSizing()
-  end)
-
-  microframe:SetScript("OnUpdate", function()
-    this.modifierTimer = (this.modifierTimer or 0) + arg1
-    if this.modifierTimer < .05 then return end
-    this.modifierTimer = 0
-
-    local shift = API.IsShiftKeyDown()
-    local control = API.IsControlKeyDown()
-    if MouseIsOver(this) and shift and control then
-      if not this.mousedisabled then
-        -- disable mouse events on all frames
-        this.mousedisabled = true
-        for _, frame in ipairs(frames) do
-          frame:EnableMouse(0)
-        end
-      end
-    else
-      if this.mousedisabled then
-        -- enable all mouse events again
-        this.mousedisabled = false
-        for _, frame in ipairs(frames) do
-          frame:EnableMouse(1)
-        end
-      end
-    end
   end)
 
   microframe:SetScript("OnEvent", function()
@@ -108,6 +113,14 @@ module.enable = function(self)
       frame:SetParent(microframe)
       frame.Show = nil
       frame:Show()
+
+      -- Child micro buttons normally own the mouse. Re-evaluate move mode when
+      -- entering or leaving one so Ctrl+Shift already held before mouseover is
+      -- handled without polling and without replacing their tooltip scripts.
+      ShaguTweaks.HookScript(frame, "OnEnter", UpdateMoveMode)
+      ShaguTweaks.HookScript(frame, "OnLeave", UpdateMoveMode)
     end
+
+    UpdateMoveMode()
   end)
 end
