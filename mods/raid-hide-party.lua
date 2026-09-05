@@ -11,51 +11,41 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
-  if not ShaguTweaks.RaidFrame_OnReady then return end
+  local show = _G['PartyMemberFrame1'].Show
+  local hide = function() return end
 
-  ShaguTweaks.RaidFrame_OnReady(function(raid)
-    local originals = {}
-    local hidden = false
-
-    for i = 1, MAX_PARTY_MEMBERS do
-      local frame = _G["PartyMemberFrame" .. i]
-      if frame then originals[frame] = frame.Show end
-    end
-
-    local function SetPartyFramesHidden(state)
-      if state == hidden then return end
-      hidden = state
-
-      for i = 1, MAX_PARTY_MEMBERS do
-        local frame = _G["PartyMemberFrame" .. i]
-        if frame then
-          if state then
-            frame.Show = function() return end
+  local scanner = CreateFrame("Frame", nil, UIParent)
+  scanner:SetScript("OnUpdate", function()
+    if ShaguTweaksRaidFrame and ShaguTweaksRaidFrame:IsShown() then
+      if not this.disable then
+        -- disable all party frames
+        for i = 1, MAX_PARTY_MEMBERS do
+          local frame = _G['PartyMemberFrame' .. i]
+          if frame then
+            frame.Show = hide
             frame:Hide()
-          else
-            frame.Show = originals[frame]
-            if GetPartyMember(i) then frame:Show() else frame:Hide() end
           end
         end
+
+        this.disable = true
+      end
+    else
+      if this.disable then
+        -- enable all party frames
+        for i = 1, MAX_PARTY_MEMBERS do
+          for i = 1, MAX_PARTY_MEMBERS do
+            local frame = _G['PartyMemberFrame' .. i]
+            if frame then
+              frame.Show = show
+              if GetPartyMember(i) then
+                frame:Show()
+              end
+            end
+          end
+        end
+
+        this.disable = nil
       end
     end
-
-    local function UpdatePartyFrames()
-      local active = raid:IsShown() and raid.cluster and raid.cluster:IsShown()
-      SetPartyFramesHidden(active and true or false)
-    end
-
-    ShaguTweaks.HookScript(raid, "OnShow", UpdatePartyFrames)
-    ShaguTweaks.HookScript(raid, "OnHide", UpdatePartyFrames)
-    ShaguTweaks.HookScript(raid.cluster, "OnShow", UpdatePartyFrames)
-    ShaguTweaks.HookScript(raid.cluster, "OnHide", UpdatePartyFrames)
-
-    local watcher = CreateFrame("Frame", nil, UIParent)
-    watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
-    watcher:RegisterEvent("RAID_ROSTER_UPDATE")
-    watcher:RegisterEvent("PARTY_MEMBERS_CHANGED")
-    watcher:SetScript("OnEvent", UpdatePartyFrames)
-
-    UpdatePartyFrames()
   end)
 end
