@@ -12,7 +12,6 @@ local module = ShaguTweaks:register({
 
 module.enable = function(self)
   ShaguTweaks.UnitFrame_NewComponent('combat feedback', {
-    onupdate = true,
     events = {
       'UNIT_COMBAT',
     },
@@ -24,22 +23,35 @@ module.enable = function(self)
       frame.feedback:SetParent(frame.mana)
       frame.feedback:ClearAllPoints()
       frame.feedback:SetPoint("CENTER", frame.bar, "CENTER", 0, 0)
+      frame.feedback:Hide()
 
       frame.feedbackFontHeight = 12
-      frame.feedbackStartTime = GetTime()
       frame.feedbackText = frame.feedback
+
+      -- Blizzard's CombatFeedback animation lasts only 1.2 seconds. Keep the
+      -- unit frame asleep while there is nothing to animate, then remove the
+      -- OnUpdate again as soon as Blizzard hides the feedback text.
+      frame.feedbackOnUpdate = function()
+        CombatFeedback_OnUpdate(arg1)
+        if not this.feedback:IsVisible() then
+          this:SetScript("OnUpdate", nil)
+        end
+      end
     end,
 
     update = function(frame, event)
-      if event then
-        if event ~= 'UNIT_COMBAT' then return end
+      if not event then return end
 
+      if event == 'UNIT_COMBAT' then
         -- update with latest values
         if arg1 ~= frame.unitstr then return end
         CombatFeedback_OnCombatEvent(arg2, arg3, arg4, arg5)
+        frame:SetScript("OnUpdate", frame.feedbackOnUpdate)
       else
-        -- animate combat text
-        CombatFeedback_OnUpdate(arg1)
+        -- Raid roster/world refreshes can reassign this frame to another unit.
+        -- Never carry an old animation across that reassignment.
+        frame.feedback:Hide()
+        frame:SetScript("OnUpdate", nil)
       end
     end
   })
