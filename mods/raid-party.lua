@@ -11,52 +11,58 @@ local module = ShaguTweaks:register({
 })
 
 module.enable = function(self)
-  local raid = ShaguTweaksRaidFrame
-  if not raid then return end
+  if not ShaguTweaks.RaidFrame_OnReady then return end
 
-  local RaidOnEvent = raid:GetScript("OnEvent")
-  raid:RegisterEvent("PARTY_LEADER_CHANGED")
-  raid:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
-  raid:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  ShaguTweaks.RaidFrame_OnReady(function(raid)
+    local RaidOnEvent = raid:GetScript("OnEvent")
+    raid:RegisterEvent("PARTY_LEADER_CHANGED")
+    raid:RegisterEvent("PARTY_LOOT_METHOD_CHANGED")
+    raid:RegisterEvent("PARTY_MEMBERS_CHANGED")
 
-  raid:SetScript("OnEvent", function()
-    -- run default scripts
-    RaidOnEvent()
+    raid:SetScript("OnEvent", function()
+      -- run default scripts
+      if RaidOnEvent then RaidOnEvent() end
 
-    -- break here in normal raid scenario
-    if UnitInRaid("player") then return end
+      -- break here in normal raid scenario
+      if UnitInRaid("player") then return end
 
-    -- check for party mode
-    if GetNumPartyMembers() > 0 then
-      -- initialize raid frame
-      local x, y = 1, 0
-      for index = 1, 40 do
-        -- clear current unitstr assignments
-        this.cluster.frames[index].unitstr = nil
-        this.cluster.frames[index]:Hide()
+      -- check for party mode
+      if GetNumPartyMembers() > 0 then
+        -- initialize raid frame
+        local x, y = 1, 0
+        for index = 1, 40 do
+          -- clear current unitstr assignments
+          this.cluster.frames[index].unitstr = nil
+          this.cluster.frames[index]:Hide()
 
-        if index <= 5 then
-          -- determine best unitstr
-          local unitstr = index == 1 and "player" or "party" .. index-1
+          if index <= 5 then
+            -- determine best unitstr
+            local unitstr = index == 1 and "player" or "party" .. index-1
 
-          -- assign party to first raid group of frames
-          this.cluster.frames[index].unitstr = unitstr
-          this.cluster.frames[index].groupid = 1
-          this.cluster.frames[index]:Show()
+            -- assign party to first raid group of frames
+            local frame = this.cluster.frames[index]
+            frame.unitstr = unitstr
+            frame.groupid = 1
 
-          -- save required raid frame size
-          if UnitExists(unitstr) then
-            y = math.max(y, index)
+            if UnitExists(unitstr) then
+              frame:Show()
+              if ShaguTweaks.UnitFrame_Refresh then
+                ShaguTweaks.UnitFrame_Refresh(frame)
+              end
+              y = math.max(y, index)
+            else
+              frame:Hide()
+            end
           end
         end
-      end
 
-      -- set raid frame size
-      raid.cluster:SetWidth(x * (raid.cluster.config["raid.width"]+2) + 6)
-      raid.cluster:SetHeight(y * (raid.cluster.config["raid.height"]+1) + 7)
-      raid:Show()
-    else
-      raid:Hide()
-    end
+        -- set raid frame size
+        raid.cluster:SetWidth(x * (raid.cluster.config["raid.width"]+2) + 6)
+        raid.cluster:SetHeight(y * (raid.cluster.config["raid.height"]+1) + 7)
+        raid:Show()
+      else
+        raid:Hide()
+      end
+    end)
   end)
 end
