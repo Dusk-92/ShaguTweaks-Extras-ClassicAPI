@@ -266,20 +266,26 @@ module.enable = function(self)
   frame:RegisterEvent("PLAYER_LOGIN")
   frame:RegisterEvent("PLAYER_ENTERING_WORLD")
   frame:RegisterEvent("UPDATE_BINDINGS")
-  frame.elapsed = 0
   frame.guardUntil = 0
+  frame.guardTicker = nil
 
-  local function GuardOnUpdate()
+  local function GuardTick()
     if not frame.guardUntil or frame.guardUntil <= GetTime() then
-      frame:SetScript("OnUpdate", nil)
+      if frame.guardTicker then
+        frame.guardTicker:Cancel()
+        frame.guardTicker = nil
+      end
       return
     end
 
-    frame.elapsed = frame.elapsed + (arg1 or 0)
-    if frame.elapsed < 0.25 then return end
-    frame.elapsed = 0
-
     if not HandlersAreInstalled() then Install() end
+  end
+
+  local function StartGuard()
+    frame.guardUntil = GetTime() + 8
+    if not frame.guardTicker then
+      frame.guardTicker = C_Timer.NewTicker(0.25, GuardTick)
+    end
   end
 
   frame:SetScript("OnEvent", function()
@@ -287,9 +293,7 @@ module.enable = function(self)
     RefreshModifiedBindings()
 
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
-      frame.guardUntil = GetTime() + 8
-      frame.elapsed = 0
-      frame:SetScript("OnUpdate", GuardOnUpdate)
+      StartGuard()
     end
   end)
 end
