@@ -1,6 +1,6 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API
+local rgbhex = ShaguTweaks.rgbhex
 
 local module = ShaguTweaks:register({
   title = T["Enable Raid Frames"],
@@ -18,32 +18,6 @@ local module = ShaguTweaks:register({
 })
 
 local components = {}
-local raidReadyCallbacks = {}
-local raidReadyFrame
-
--- Raid submodules are enabled from an unordered ShaguTweaks.mods table.
--- Queue work that needs the actual raid frame so submodules never depend on
--- which module happens to be visited first by pairs().
-ShaguTweaks.RaidFrame_OnReady = function(callback)
-  if type(callback) ~= "function" then return end
-
-  if raidReadyFrame then
-    callback(raidReadyFrame)
-  else
-    table.insert(raidReadyCallbacks, callback)
-  end
-end
-
-local function NotifyRaidFrameReady(raid)
-  raidReadyFrame = raid
-
-  local callbacks = raidReadyCallbacks
-  raidReadyCallbacks = {}
-
-  for i = 1, table.getn(callbacks) do
-    callbacks[i](raid)
-  end
-end
 
 local backdrop = {
   border = {
@@ -70,26 +44,28 @@ local GetFramePosition = function(i, rows)
 end
 
 local UnitInRange = function(unitstr)
-  if not unitstr then return false end
+  if SUPERWOW_VERSION then
+    -- 40y range check
+    local x1, y1, z1 = UnitPosition("player")
+    local x2, y2, z2 = UnitPosition(this.unitstr)
 
-  -- ClassicAPI provides a reach-aware 40-yard range check. Any compatibility
-  -- fallback is centralized in ShaguTweaks.API rather than duplicated here.
-  local inRange, checked = API.UnitInRange(unitstr)
-  return checked and inRange or false
+    -- only continue if we got position values
+    if x1 and y1 and z1 and x2 and y2 and z2 then
+      local distance = ((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)^.5
+      if distance < 40 then return true end
+    end
+  else
+    -- 28y range check
+    if CheckInteractDistance(this.unitstr, 4) then return true end
+  end
+
+  return false
 end
 
 -- Unit Frames
 local UnitFrame_NewComponent = function(name, object)
   object.name = name
   table.insert(components, object)
-end
-
-local UnitFrame_Refresh = function(frame)
-  if not frame or not frame.unitstr or not UnitName(frame.unitstr) then return end
-
-  for _, component in ipairs(components) do
-    component.update(frame, "FRAME_REFRESH")
-  end
 end
 
 local UnitFrame_OnEnter = function()
@@ -107,14 +83,27 @@ local UnitFrame_OnLeave = function()
 end
 
 local UnitFrame_OnUpdate = function()
+  -- abort on invalid unit frames
   if not this.unitstr or not UnitName(this.unitstr) then
     this:Hide()
     return
   end
 
-  -- Only true frame-by-frame animations run on individual unit frames.
-  for component in pairs(this.onupdate) do
+  -- run update functions of all components
+  for component in pairs(this.update) do
     component.update(this)
+  end
+
+  -- run 250ms tick pseudo events
+  this.tick250 = this.tick250 or 0
+  if this.events['FRAME_TICK_250'] and this.tick250 < GetTime() then
+    -- set next tick time
+    this.tick250 = GetTime() + .250
+
+    -- run update functions for each frame
+    for id, component in pairs(this.events['FRAME_TICK_250']) do
+      component.update(this, 'FRAME_TICK_250')
+    end
   end
 end
 
@@ -159,7 +148,7 @@ local UnitFrame_OnEvent = function()
   if not this.events[event] then return end
 
   -- run update functions for each frame
-  for _, component in ipairs(this.events[event]) do
+  for id, component in pairs(this.events[event]) do
     component.update(this, event)
   end
 end
@@ -181,13 +170,14 @@ local CreateUnitFrame = function(parent, i)
     ['PLAYER_ENTERING_WORLD'] = { },
   }
 
-  frame.onupdate = {}
+  frame.update = {}
 
   -- assign required events and scripts
   frame:SetScript("OnEvent", UnitFrame_OnEvent)
   frame:SetScript("OnClick", UnitFrame_OnClick)
   frame:SetScript("OnEnter", UnitFrame_OnEnter)
   frame:SetScript("OnLeave", UnitFrame_OnLeave)
+  frame:SetScript("OnUpdate", UnitFrame_OnUpdate)
   frame:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
 
   -- base events
@@ -195,12 +185,12 @@ local CreateUnitFrame = function(parent, i)
   frame:RegisterEvent("PARTY_MEMBERS_CHANGED")
   frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
-  for _, object in ipairs(components) do
+  for id, object in pairs(components) do
     -- create component frames
     object.create(frame)
 
     -- register component update events
-    for _, event in ipairs(object.events) do
+    for _, event in pairs(object.events) do
       frame:RegisterEvent(event)
       frame.events[event] = frame.events[event] or {}
       table.insert(frame.events[event], object)
@@ -211,16 +201,8 @@ local CreateUnitFrame = function(parent, i)
     table.insert(frame.events['PARTY_MEMBERS_CHANGED'], object)
     table.insert(frame.events['PLAYER_ENTERING_WORLD'], object)
 
-    -- only register true frame-by-frame components
-    if object.onupdate then
-      frame.onupdate[object] = true
-    end
-  end
-
-  if next(frame.onupdate) then
-    frame:SetScript("OnUpdate", UnitFrame_OnUpdate)
-  else
-    frame:SetScript("OnUpdate", nil)
+    -- register update function
+    frame.update[object] = true
   end
 
   -- save frame to parent
@@ -250,8 +232,7 @@ UnitFrame_NewComponent('health', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if (event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH")
-      and arg1 ~= frame.unitstr then return end
+    if arg1 and this.unitstr ~= arg1 then return end
 
     -- update statusbar values
     frame.bar:SetMinMaxValues(0, UnitHealthMax(frame.unitstr))
@@ -263,7 +244,7 @@ UnitFrame_NewComponent('health', {
     if class and RAID_CLASS_COLORS[class] then
       r, g, b = RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
     end
-    frame.bar:SetStatusBarColor(r, g, b, 1)
+    frame.bar:SetStatusBarColor(r, g, b, a)
   end
 })
 
@@ -295,26 +276,20 @@ UnitFrame_NewComponent('mana', {
   update = function(frame, event)
     -- ignore empty or unrelated events
     if not event then return end
-    if (event == "UNIT_MANA" or event == "UNIT_MAXMANA"
-      or event == "UNIT_ENERGY" or event == "UNIT_MAXENERGY"
-      or event == "UNIT_RAGE" or event == "UNIT_MAXRAGE"
-      or event == "UNIT_DISPLAYPOWER")
-      and arg1 ~= frame.unitstr then return end
+    if arg1 and this.unitstr ~= arg1 then return end
 
     -- update mana bar values
     frame.mana:SetMinMaxValues(0, UnitManaMax(frame.unitstr))
     frame.mana:SetValue(UnitMana(frame.unitstr))
 
     -- update mana bar colors
-    local color = ManaBarColor[UnitPowerType(frame.unitstr)] or { r = .2, g = .2, b = 1 }
+    local color = ManaBarColor[UnitPowerType(frame.unitstr)]
     frame.mana:SetStatusBarColor(color.r, color.g, color.b, 1)
   end
 })
 
 UnitFrame_NewComponent('text', {
-  events = {
-    'FRAME_TICK_250',
-  },
+  events = { },
 
   create = function(frame)
     -- create caption text
@@ -328,11 +303,9 @@ UnitFrame_NewComponent('text', {
   update = function(frame, event)
     -- update caption text
     local name = UnitName(frame.unitstr) or ""
-    local info = (not frame.compact and frame.info) and "\n"..frame.info or ""
+    local info = frame.info and "\n"..frame.info or ""
     frame.text:SetText(name .. info)
     frame.info = nil
-
-    if frame.compact then return end
 
     -- update info states
     if not UnitIsConnected(frame.unitstr) then
@@ -380,7 +353,6 @@ UnitFrame_NewComponent('highlight', {
     highlight:SetBackdrop(backdrop.border)
     highlight:SetPoint("TOPLEFT", frame, "TOPLEFT", -1.5,1.5)
     highlight:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1.5,-1.5)
-    highlight:Hide()
     frame.highlight = highlight
   end,
 
@@ -425,7 +397,6 @@ UnitFrame_NewComponent('target', {
     right:SetHeight(8)
     right:SetBlendMode('ADD')
 
-    target:Hide()
     frame.target = target
   end,
 
@@ -492,7 +463,6 @@ UnitFrame_NewComponent('range', {
 })
 
 ShaguTweaks.UnitFrame_NewComponent = UnitFrame_NewComponent
-ShaguTweaks.UnitFrame_Refresh = UnitFrame_Refresh
 
 -- Bring everything to life
 module.enable = function(self)
@@ -517,14 +487,13 @@ module.enable = function(self)
       local x, y = 0, 0
       for group = 1, 8 do
         if RAID_SUBGROUP_LISTS and RAID_SUBGROUP_LISTS[group] then
-          for id, unit in ipairs(RAID_SUBGROUP_LISTS[group]) do
+          for id, unit in pairs(RAID_SUBGROUP_LISTS[group]) do
             -- assign proper unitstrs to frames
             local index = (group - 1) * 5 + id
             local frame = this.cluster.frames[index]
             frame.unitstr = 'raid' .. unit
             frame.groupid = group
             frame:Show()
-            UnitFrame_Refresh(frame)
 
             -- save required raid frame size
             x = math.max(x, frame.left)
@@ -592,20 +561,15 @@ module.enable = function(self)
     pushed:SetHeight(110)
     pushed:SetAlpha(.5)
 
-    local function UpdateToggleDrag()
-      local px, py = GetCursorPosition()
-      local scale = raid.toggle:GetEffectiveScale()
-      px, py = px / scale, py / scale
-      raid.toggle:ClearAllPoints()
-      raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
-    end
-
     raid.toggle:SetScript("OnMouseDown", function()
-      local shift = API.IsShiftKeyDown()
-      if shift then
+      if IsShiftKeyDown() then
         this.dragging = true
-        this:SetScript("OnUpdate", UpdateToggleDrag)
-        UpdateToggleDrag()
+
+        local px, py = GetCursorPosition()
+        local scale = this:GetEffectiveScale()
+        px, py = px / scale, py / scale
+        raid.toggle:ClearAllPoints()
+        raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
       else
         if raid.cluster:IsShown() then
           raid.toggle.icon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-NextPage-Disabled")
@@ -619,7 +583,15 @@ module.enable = function(self)
 
     raid.toggle:SetScript("OnMouseUp", function()
       this.dragging = false
-      this:SetScript("OnUpdate", nil)
+    end)
+
+    raid.toggle:SetScript("OnUpdate", function()
+      if not this.dragging then return end
+
+      local px, py = GetCursorPosition()
+      local scale = this:GetEffectiveScale()
+      px, py = px / scale, py / scale
+      raid.toggle:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", -8, py-32)
     end)
   end
 
@@ -636,28 +608,4 @@ module.enable = function(self)
     -- assign default config
     raid.cluster.config = module.config
   end
-
-  do -- shared 250ms component ticker
-    raid.ticker = CreateFrame("Frame", nil, raid)
-    raid.ticker:SetScript("OnUpdate", function()
-      this.elapsed = (this.elapsed or 0) + (arg1 or 0)
-      if this.elapsed < .250 then return end
-      this.elapsed = this.elapsed - .250
-
-      if not raid.cluster.frames then return end
-
-      for _, frame in ipairs(raid.cluster.frames) do
-        if frame:IsVisible() and frame.unitstr and UnitName(frame.unitstr) then
-          local tickers = frame.events['FRAME_TICK_250']
-          if tickers then
-            for _, component in ipairs(tickers) do
-              component.update(frame, 'FRAME_TICK_250')
-            end
-          end
-        end
-      end
-    end)
-  end
-
-  NotifyRaidFrameReady(raid)
 end

@@ -1,6 +1,5 @@
 local _G = ShaguTweaks.GetGlobalEnv()
 local T = ShaguTweaks.T
-local API = ShaguTweaks.API
 
 local module = ShaguTweaks:register({
   title = T["Show Dispel Indicators"],
@@ -56,22 +55,20 @@ module.enable = function(self)
         frame.dispel[dtype].tex:SetVertexColor(unpack(color))
         frame.dispel[dtype].tex:SetPoint("TOPLEFT", frame.dispel[dtype], "TOPLEFT", 2, -2)
         frame.dispel[dtype].tex:SetPoint("BOTTOMRIGHT", frame.dispel[dtype], "BOTTOMRIGHT", -2, 2)
-        frame.dispel[dtype]:Hide()
       end
     end,
 
     update = function(frame, event)
       -- ignore empty or unrelated events
       if not event then return end
-      if (event == "UNIT_AURA" or event == "UNIT_AURASTATE")
-        and arg1 ~= frame.unitstr then return end
+      if arg1 and this.unitstr ~= arg1 then return end
 
       -- affected debuffs
       frame.affected = frame.affected or {}
       for dtype in pairs(debuffs) do frame.affected[dtype] = nil end
 
       for i = 1, 16 do
-        local dtype = API.GetDebuffType(frame.unitstr, i)
+        local _, _, dtype = UnitDebuff(frame.unitstr, i)
         if dtype then frame.affected[dtype] = true end
       end
 
