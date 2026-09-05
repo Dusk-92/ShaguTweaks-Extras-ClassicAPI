@@ -68,8 +68,7 @@ module.enable = function(self)
     if not text or not name then return end
 
     -- Avoid forcing a FontString update when the displayed value is already
-    -- correct. This matters most for the legacy 250 ms target-of-target
-    -- fallback.
+    -- correct. This matters most for the 250 ms target-of-target fallback.
     if not text.GetText or text:GetText() ~= name then
       text:SetText(name)
     end
@@ -117,22 +116,30 @@ module.enable = function(self)
     end
   end)
 
-  -- ClassicAPI normally provides UNIT_TARGET. Keep a lightweight Vanilla
-  -- fallback only when that event isn't available instead of running every
-  -- rendered frame like the original module.
+  -- Vanilla has no UNIT_TARGET event for target-of-target changes. Prefer the
+  -- ClassicAPI native ticker so Lua only runs at the required 250 ms cadence,
+  -- instead of entering a Lua OnUpdate handler every rendered frame. Keep the
+  -- old throttled path only for older environments without C_Timer.NewTicker.
   if not hasUnitTarget then
-    local fallback = CreateFrame("Frame")
-    fallback.elapsed = 0
-
-    fallback:SetScript("OnUpdate", function()
-      this.elapsed = this.elapsed + (arg1 or 0)
-      if this.elapsed < .25 then return end
-      this.elapsed = 0
-
+    local function UpdateTargetTargetFallback()
       if UnitName("targettarget") then
         UpdateTargetTarget()
       end
-    end)
+    end
+
+    if _G.C_Timer and type(_G.C_Timer.NewTicker) == "function" then
+      _G.C_Timer.NewTicker(.25, UpdateTargetTargetFallback)
+    else
+      local fallback = CreateFrame("Frame")
+      fallback.elapsed = 0
+
+      fallback:SetScript("OnUpdate", function()
+        this.elapsed = this.elapsed + (arg1 or 0)
+        if this.elapsed < .25 then return end
+        this.elapsed = 0
+        UpdateTargetTargetFallback()
+      end)
+    end
   end
 
   UpdateTarget()
